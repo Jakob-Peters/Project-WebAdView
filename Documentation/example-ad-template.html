@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>example-ad-template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Didomi tag for web - Generic tag -->
+    <script
+        type="text/javascript">(function () { (function (e) { var r = document.createElement("link"); r.rel = "preconnect"; r.as = "script"; var t = document.createElement("link"); t.rel = "dns-prefetch"; t.as = "script"; var n = document.createElement("script"); n.id = "spcloader"; n.type = "text/javascript"; n["async"] = true; n.charset = "utf-8"; var o = "https://sdk.privacy-center.org/" + e + "/loader.js?target=" + document.location.hostname; if (window.didomiConfig && window.didomiConfig.user) { var i = window.didomiConfig.user; var a = i.country; var c = i.region; if (a) { o = o + "&country=" + a; if (c) { o = o + "&region=" + c } } } r.href = "https://sdk.privacy-center.org/"; t.href = "https://sdk.privacy-center.org/"; n.src = o; var d = document.getElementsByTagName("script")[0]; d.parentNode.insertBefore(r, d); d.parentNode.insertBefore(t, d); d.parentNode.insertBefore(n, d) })("d0661bea-d696-4069-b308-11057215c4c4") })();</script>
+
+    <!-- Enable externalConsent for Didomi Web SDK to accept consent from native app -->
+    <script>
+        window.didomiConfig = window.didomiConfig || {};
+        window.didomiConfig.user = window.didomiConfig.user || {};
+        window.didomiConfig.user.externalConsent = { enabled: true };
+    </script>
+
+    <!-- Yield Manager Tag  -->
+    <script src="https://AFtbN2xnQGXShTYuo.ay.delivery/manager/AFtbN2xnQGXShTYuo" type="text/javascript"
+        referrerpolicy="no-referrer-when-downgrade"></script>
+
+    <!-- Basic styling for displaying ad correctly -->
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            min-height: 100vh;
+            background: #fff;
+        }
+
+        .ad-container {
+            width: 100vw;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ad-container"
+        style="width:100vw; height:100vh; min-height:100vh; min-width:100vw; padding:0; margin:0; display:flex; align-items:center; justify-content:center;">
+        <!-- Ad unit tag for Yield Manager - Template adUnitName_1 -->
+        <div data-ay-manager-id="div-gpt-ad-adUnitName_1">
+            <script type="text/javascript">
+                window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
+                window.ayManagerEnv.cmd.push(function () {
+                    ayManagerEnv.display("div-gpt-ad-adUnitName_1");
+                });
+            </script>
+        </div>
+    </div>
+</body>
+
+</html>
