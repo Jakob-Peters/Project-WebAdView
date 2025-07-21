@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		860BE1292E2E2A4200CA13B0 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 860BE1282E2E2A4200CA13B0 /* GoogleMobileAds */; };
+		860BE12C2E2E2A5300CA13B0 /* Didomi in Frameworks */ = {isa = PBXBuildFile; productRef = 860BE12B2E2E2A5300CA13B0 /* Didomi */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		860BE1192E2E29C900CA13B0 /* Project AdView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Project AdView.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				860BE12C2E2E2A5300CA13B0 /* Didomi in Frameworks */,
+				860BE1292E2E2A4200CA13B0 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +72,8 @@
 			);
 			name = "Project AdView";
 			packageProductDependencies = (
+				860BE1282E2E2A4200CA13B0 /* GoogleMobileAds */,
+				860BE12B2E2E2A5300CA13B0 /* Didomi */,
 			);
 			productName = "Project AdView";
 			productReference = 860BE1192E2E29C900CA13B0 /* Project AdView.app */;
@@ -94,6 +103,10 @@
 			);
 			mainGroup = 860BE1102E2E29C900CA13B0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				860BE1272E2E2A4200CA13B0 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				860BE12A2E2E2A5300CA13B0 /* XCRemoteSwiftPackageReference "didomi-ios-sdk-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 860BE11A2E2E29C900CA13B0 /* Products */;
 			projectDirPath = "";
@@ -324,6 +337,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		860BE1272E2E2A4200CA13B0 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+		860BE12A2E2E2A5300CA13B0 /* XCRemoteSwiftPackageReference "didomi-ios-sdk-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/didomi/didomi-ios-sdk-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.26.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		860BE1282E2E2A4200CA13B0 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 860BE1272E2E2A4200CA13B0 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+		860BE12B2E2E2A5300CA13B0 /* Didomi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 860BE12A2E2E2A5300CA13B0 /* XCRemoteSwiftPackageReference "didomi-ios-sdk-spm" */;
+			productName = Didomi;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 860BE1112E2E29C900CA13B0 /* Project object */;
 }
