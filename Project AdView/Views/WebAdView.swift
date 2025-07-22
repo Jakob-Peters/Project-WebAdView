@@ -26,7 +26,7 @@ struct WebAdView: UIViewControllerRepresentable {
 }
 
 //MARK: WebAdViewController
-class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate {
+class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     private let baseURL: String
     var webView: WKWebView!
     private var hasLoadedContent = false
@@ -100,16 +100,39 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate 
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
+
+        // Add user content controller and register JS bridge handler
+        let userContentController = WKUserContentController()
+        userContentController.add(self, name: "nativeBridge")
+        config.userContentController = userContentController
+
         webView = WKWebView(frame: view.bounds, configuration: config)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        
+
         // Set delegates for click handling
         webView.uiDelegate = self
         webView.navigationDelegate = self
-        
+
         view.addSubview(webView)
         print("[SN] [NATIVE] WebAdViewController: WebView setup")
     }
+
+    // MARK: WKScriptMessageHandler - JS Bridge
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        print("[SN] [WebAdView] [HTML]  ", message.body)
+    }
+
+    // MARK: Native → Web Communication
+    func sendJavaScript(_ js: String) {
+        webView?.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                print("[SN] [WebAdView] [NATIVE] Error:", error)
+            } else {
+                print("[SN] [WebAdView] [NATIVE] JS Result:", result ?? "nil")
+            }
+        }
+    }
+
     //MARK: Load ad content
     func loadAdContent() {
         guard !hasLoadedContent else { return }
@@ -119,12 +142,30 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate 
         let didomiJavaScriptCode = Didomi.shared.getJavaScriptForWebView()
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(userScript)
-        guard let url = URL(string: baseURL) else { return }
+
+        //MARK: Add random query param to avoid caching
+        let randomValue = UUID().uuidString
+        var urlString = baseURL
+        if urlString.contains("?") {
+            urlString += "&rnd=\(randomValue)"
+        } else {
+            urlString += "?rnd=\(randomValue)"
+        }
+
+
+        guard let url = URL(string: urlString) else { return }
         initialURL = url  // Track the initial URL for domain comparison
         let request = URLRequest(url: url)
         webView.load(request)
         let id = ObjectIdentifier(self).hashValue
         print("[SN] [NATIVE] WebAdViewController[\(id)]: Loading URL \(url)")
+        
+        // Test bidirectional communication after page load
+        /* 
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.sendJavaScript("console.log('Hello from Native Swift!')")
+            self.sendJavaScript("window.testNativeMessage = 'Message from Native received!'")
+        } */
         // Consent is now injected at document start via WKUserScript
     }
     
@@ -136,7 +177,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate 
             handleExternalURL(url)
             print("[SN] [NATIVE] External URL handler: Popup window opened externally.")
         }
-        
+    
         return nil
     }
     

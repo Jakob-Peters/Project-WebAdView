@@ -23,7 +23,7 @@
         window.didomiConfig.user.externalConsent = { enabled: true };
     </script> 
 
-    <!-- Yield Manager Tag  -->
+    <!-- Yield Manager Tag -->
     <script src="https://AFtbN2xnQGXShTYuo.ay.delivery/manager/AFtbN2xnQGXShTYuo" type="text/javascript"
         referrerpolicy="no-referrer-when-downgrade"></script>
 
@@ -37,6 +37,13 @@
         googletag.pubads().setTargeting('yb_target', 'alwayson-standard');
       });
     </script>
+    
+    <!-- Communication to Xcode logs example -->
+    <script>
+        window.webkit.messageHandlers.nativeBridge.postMessage("This log is from HTML page.");
+    </script>
+    
+    
     <!-- Basic styling for displaying ad correctly -->
     <style>
         html,
