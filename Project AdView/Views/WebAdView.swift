@@ -10,7 +10,7 @@ struct WebAdView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> WebAdViewController {
         let controller = WebAdViewController(baseURL: baseURL)
         let id = ObjectIdentifier(controller).hashValue
-        print("[SN] WebAdView.makeUIViewController: Created controller [\(id)]")
+        print("[SN] [NATIVE] WebAdView.makeUIViewController: Created controller [\(id)]")
         return controller
     }
 
@@ -20,16 +20,17 @@ struct WebAdView: UIViewControllerRepresentable {
 
     static func dismantleUIViewController(_ uiViewController: WebAdViewController, coordinator: ()) {
         let id = ObjectIdentifier(uiViewController).hashValue
-        print("[SN] WebAdView.dismantleUIViewController: Dismantling controller [\(id)]")
+        print("[SN] [NATIVE] WebAdView.dismantleUIViewController: Dismantling controller [\(id)]")
         uiViewController.unloadWebView()
     }
 }
 
 //MARK: WebAdViewController
-class WebAdViewController: UIViewController {
+class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate {
     private let baseURL: String
     var webView: WKWebView!
     private var hasLoadedContent = false
+    private var initialURL: URL?
 
     init(baseURL: String) {
         self.baseURL = baseURL
@@ -51,7 +52,7 @@ class WebAdViewController: UIViewController {
         // First check if consent is already given
         if Didomi.shared.isReady() && !Didomi.shared.isUserStatusPartial() && !self.hasLoadedContent {
             self.loadAdContent()
-            print("[SN] WebAdViewController: Consent already given, loading WebAdViews")
+            print("[SN] [NATIVE] WebAdViewController: Consent already given, loading WebAdViews")
             return
         }
         
@@ -64,7 +65,7 @@ class WebAdViewController: UIViewController {
             guard let self = self else { return }
             if !Didomi.shared.isUserStatusPartial() && !self.hasLoadedContent {
                 self.loadAdContent()
-                print("[SN] WebAdViewController: Consent changed")
+                print("[SN] [NATIVE] WebAdViewController: Consent changed")
             }
         }
         
@@ -73,7 +74,7 @@ class WebAdViewController: UIViewController {
             DispatchQueue.main.async {
                 if !Didomi.shared.isUserStatusPartial() && !self.hasLoadedContent {
                     self.loadAdContent()
-                    print("[SN] WebAdViewController: Consent onReady, loading WebAdViews")
+                    print("[SN] [NATIVE] WebAdViewController: Consent onReady, loading WebAdViews")
                 }
             }
         }
@@ -81,7 +82,7 @@ class WebAdViewController: UIViewController {
 
     deinit {
         let id = ObjectIdentifier(self).hashValue
-        print("[SN] WebAdViewController[\(id)]: deinit called")
+        print("[SN] [NATIVE] WebAdViewController[\(id)]: deinit called")
         // Remove notification observer
         NotificationCenter.default.removeObserver(self)
     }
@@ -91,17 +92,23 @@ class WebAdViewController: UIViewController {
         webView?.removeFromSuperview()
         webView = nil
         let id = ObjectIdentifier(self).hashValue
-        print("[SN] WebAdViewController[\(id)]: Unloaded WebView")
+        print("[SN] [NATIVE] WebAdViewController[\(id)]: Unloaded WebView")
     }
-    //MARK: WebView setup
+    //MARK: Setup WebView
     private func setupWebView() {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         webView = WKWebView(frame: view.bounds, configuration: config)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        // Set delegates for click handling
+        webView.uiDelegate = self
+        webView.navigationDelegate = self
+        
         view.addSubview(webView)
-        print("[SN] WebAdViewController: WebView setup")
+        print("[SN] [NATIVE] WebAdViewController: WebView setup")
     }
     //MARK: Load ad content
     func loadAdContent() {
@@ -113,10 +120,76 @@ class WebAdViewController: UIViewController {
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(userScript)
         guard let url = URL(string: baseURL) else { return }
+        initialURL = url  // Track the initial URL for domain comparison
         let request = URLRequest(url: url)
         webView.load(request)
         let id = ObjectIdentifier(self).hashValue
-        print("[SN] WebAdViewController[\(id)]: Loading URL \(url)")
+        print("[SN] [NATIVE] WebAdViewController[\(id)]: Loading URL \(url)")
         // Consent is now injected at document start via WKUserScript
+    }
+    
+    //MARK: WKUIDelegate - Handle target="_blank" clicks
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        
+        // Handle popup windows by opening externally
+        if let url = navigationAction.request.url {
+            handleExternalURL(url)
+            print("[SN] [NATIVE] External URL handler: Popup window opened externally.")
+        }
+        
+        return nil
+    }
+    
+    //MARK: WKNavigationDelegate - Handle navigation decisions
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        
+        let shouldHandleExternally = shouldHandleExternally(navigationAction: navigationAction, initialURL: initialURL)
+        
+        if shouldHandleExternally {
+            handleExternalURL(navigationAction.request.url)
+            decisionHandler(.cancel)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+    
+    //MARK: External URL Handler - Based on working model
+    private func shouldHandleExternally(navigationAction: WKNavigationAction, initialURL: URL?) -> Bool {
+        guard let targetURL = navigationAction.request.url else {
+            print("[SN] [NATIVE] External URL handler: No target URL found")
+            return false
+        }
+        
+        // Always handle non-HTTP/HTTPS schemes externally
+        if let scheme = targetURL.scheme, !["http", "https"].contains(scheme.lowercased()) {
+            return true
+        }
+        
+        // Handle popup windows externally (target="_blank")
+        if navigationAction.targetFrame == nil {
+            print("[SN] [NATIVE] External URL handler: Popup window detected")
+            return true
+        }
+        
+        // Handle different domain navigation externally (only for main frame)
+        if let initialURL = initialURL,
+           let initialDomain = initialURL.host,
+           let targetDomain = targetURL.host,
+           initialDomain != targetDomain,
+           navigationAction.targetFrame?.isMainFrame == true {
+            print("[SN] [NATIVE] External URL handler: External domain detected: \(initialDomain) -> \(targetDomain)")
+            return true
+        }
+        
+        return false
+    }
+    
+    private func handleExternalURL(_ url: URL?) {
+        guard let url = url else { return }
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.open(url, options: [:]) { success in
+            }
+        }
     }
 }

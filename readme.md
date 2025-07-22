@@ -8,6 +8,8 @@ Project AdView is a SwiftUI-based demo app that showcases how to display ad cont
 - **SwiftUI Integration:** Uses `UIViewControllerRepresentable` to bridge UIKit `WKWebView` into SwiftUI.
 - **Multiple Ad Units:** Easily add ad units to homepage and articles.
 - **Consent Preferences:** Users can change their consent preferences at any time.
+ - **Optimized Media Configuration:** WKWebView is configured for inline video playback and autoplay, maximizing ad monetization.
+ - **External URL Handling:** Ad clicks to external domains or popup windows open in the system browser, keeping the ad content in the webview and preventing unwanted navigation.
 
 ## Main Components
 
@@ -20,6 +22,8 @@ Project AdView is a SwiftUI-based demo app that showcases how to display ad cont
 - `WebAdView` is a SwiftUI component that displays an ad in a `WKWebView`.
 - It only loads ad content after consent is given, listening for consent events via NotificationCenter.
 - Consent status is injected into the web view using Didomi's JavaScript API.
+ - WKWebView is configured with `allowsInlineMediaPlayback = true` and `mediaTypesRequiringUserActionForPlayback = []` for optimal video ad support.
+ - Clicks on external links, popup windows (`target="_blank"`), or non-http(s) schemes are detected and opened in the system browser, while the webview remains on the original ad content.
 
 ### 3. Homepage and Articles
 - The homepage and each article can display one or more `WebAdView` ad units.
@@ -58,6 +62,7 @@ In SwiftUI, changing the `.id` of a view causes it to be fully recreated. The `h
 ## Customization
 - Change the ad template URL in `WebAdView.swift` as needed.
 - Add more ad units by placing additional `WebAdView()` components in your views.
+ - You can further customize the WKWebView configuration or external URL handling logic in `WebAdViewController` for your specific ad requirements.
 
 ## Privacy Compliance
 This project ensures that ad content is only loaded after explicit user consent, in line with privacy regulations (GDPR, CCPA, etc.).

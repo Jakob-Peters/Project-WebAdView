@@ -29,25 +29,28 @@
   - [X] Add "Change Consent" button to demo app
   - [X] Implement consent status change handling
   - [X] Test consent flow and status updates
-- [ ] **2d. Passing consent info to webview**
-  - [ ] Setup the SDK for passing consent info via JS to webview.
-  - [ ] Setup the HTML template for recieving external consent signal
-  - [ ] Fix HTML template to not open consent notice
+- [X] **2d. Passing consent info to webview**
+  - [X] Setup the SDK for passing consent info via JS to webview.
+  - [X] Setup the HTML template for recieving external consent signal
+  - [X] Fix HTML template to not open consent notice
 
 ### Module 3: WebView Setup & Basic Communication
-- [ ] **3a. WebView Integration**
+- [X] **3a. WebView Integration**
   - [X] Create WKWebView component with proper styling
   - [X] Load HTML page with ad unit containers
   - [X] Implement basic WebView configuration
-- [ ] **3b. JavaScript Bridge Setup**
+- [X] **3b. WebView config for ads - Media content & external click**
+  - [X] - Media Content Configuration in webview
+  - [X] - Optimize WKWebView Click Behavior
+- [ ] **3c. JavaScript Bridge Setup**
   - [ ] Set up WKScriptMessageHandler for native-to-JS communication
   - [ ] Implement basic message passing from native to WebView
   - [ ] Test bidirectional communication
-- [ ] **3c. Ad Unit Variable Passing**
+- [ ] **3d. Ad Unit Variable Passing**
   - [ ] Pass ad unit IDs from native view to WebView
   - [ ] Configure ad unit parameters via JS communication
   - [ ] Implement ad unit identification system
-- [ ] **3d. WebView Lifecycle Management**
+- [ ] **3e. WebView Lifecycle Management**
   - [X] Implement WebView unloading on view navigation
   - [X] Set up WebView reloading for new views
   - [X] Handle memory management for WebView instances

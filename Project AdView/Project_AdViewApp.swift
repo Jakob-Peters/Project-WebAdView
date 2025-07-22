@@ -17,13 +17,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         Didomi.shared.initialize(parameters)
 
         Didomi.shared.onReady {
-            print("[SN] Didomi SDK is ready")
+            print("[SN] [NATIVE] Didomi SDK is ready")
             
             // Set up global consent change listener
             let didomiEventListener = EventListener()
             
             didomiEventListener.onConsentChanged = { event in
-                print("[SN] Consent event received")
+                print("[SN] [NATIVE] Consent event received")
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: NSNotification.Name("DidomiConsentChanged"), object: nil)
                 }
