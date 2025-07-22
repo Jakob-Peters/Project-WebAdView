@@ -25,15 +25,19 @@
   - [X] Set up AppDelegate for SDK initialization
   - [X] Implement `shared.onReady` event handling
   - [X] Ensure SDKs only initialize after Didomi is ready
-- [ ] **2c. Consent Management UI**
+- [X] **2c. Consent Management UI**
+  - [X] Add "Change Consent" button to demo app
+  - [X] Implement consent status change handling
+  - [X] Test consent flow and status updates
+- [ ] **2d. Passing consent info to webview**
   - [X] Add "Change Consent" button to demo app
   - [X] Implement consent status change handling
   - [X] Test consent flow and status updates
 
 ### Module 3: WebView Setup & Basic Communication
 - [ ] **3a. WebView Integration**
-  - [ ] Create WKWebView component with proper styling
-  - [ ] Load HTML page with ad unit containers
+  - [X] Create WKWebView component with proper styling
+  - [X] Load HTML page with ad unit containers
   - [ ] Implement basic WebView configuration
 - [ ] **3b. JavaScript Bridge Setup**
   - [ ] Set up WKScriptMessageHandler for native-to-JS communication
