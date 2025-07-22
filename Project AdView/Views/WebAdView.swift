@@ -64,7 +64,7 @@ class WebAdViewController: UIViewController {
             guard let self = self else { return }
             if !Didomi.shared.isUserStatusPartial() && !self.hasLoadedContent {
                 self.loadAdContent()
-                print("[SN] WebAdViewController: Consent changed, loading WebAdViews")
+                print("[SN] WebAdViewController: Consent changed")
             }
         }
         
