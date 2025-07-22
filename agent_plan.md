@@ -3,32 +3,32 @@
 ## 🚀 Development Modules
 
 ### Module 1: Demo Article App Setup
-- [ ] **1a. Frontend Homepage**
-  - [ ] Create SwiftUI homepage with placeholder for 1 ad unit
-  - [ ] Add navigation to 3 article pages
-  - [ ] Implement basic routing structure
-- [ ] **1b. Article Pages**
-  - [ ] Create Article 1: Filler text + 1 ad unit placeholder
-  - [ ] Create Article 2: Filler text + 2 ad unit placeholders
-  - [ ] Create Article 3: Filler text + 3 ad unit placeholders
-- [ ] **1c. Navigation System**
-  - [ ] Implement navigation between homepage and articles
-  - [ ] Set up proper view lifecycle management
-  - [ ] Test navigation flow
+- [X] **1a. Frontend Homepage**
+  - [X] Create SwiftUI homepage with placeholder for 1 ad unit
+  - [X] Add navigation to 3 article pages
+  - [X] Implement basic routing structure
+- [X] **1b. Article Pages**
+  - [X] Create Article 1: Filler text + 1 ad unit placeholder
+  - [X] Create Article 2: Filler text + 2 ad unit placeholders
+  - [X] Create Article 3: Filler text + 3 ad unit placeholders
+- [X] **1c. Navigation System**
+  - [X] Implement navigation between homepage and articles
+  - [X] Set up proper view lifecycle management
+  - [X] Test navigation flow
 
 ### Module 2: Didomi SDK Integration
-- [ ] **2a. SDK Import & Initialization**
-  - [ ] Add Didomi SDK dependency to project
-  - [ ] Import and configure Didomi SDK
-  - [ ] Load consent notice on app launch
-- [ ] **2b. AppDelegate Integration**
-  - [ ] Set up AppDelegate for SDK initialization
-  - [ ] Implement `shared.onReady` event handling
-  - [ ] Ensure SDKs only initialize after Didomi is ready
+- [X] **2a. SDK Import & Initialization**
+  - [X] Add Didomi SDK dependency to project
+  - [X] Import and configure Didomi SDK
+  - [X] Load consent notice on app launch
+- [X] **2b. AppDelegate Integration**
+  - [X] Set up AppDelegate for SDK initialization
+  - [X] Implement `shared.onReady` event handling
+  - [X] Ensure SDKs only initialize after Didomi is ready
 - [ ] **2c. Consent Management UI**
-  - [ ] Add "Change Consent" button to demo app
-  - [ ] Implement consent status change handling
-  - [ ] Test consent flow and status updates
+  - [X] Add "Change Consent" button to demo app
+  - [X] Implement consent status change handling
+  - [X] Test consent flow and status updates
 
 ### Module 3: WebView Setup & Basic Communication
 - [ ] **3a. WebView Integration**
