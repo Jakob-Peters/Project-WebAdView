@@ -11,7 +11,7 @@ import SwiftUI
 struct Project_AdViewApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomepageView()
         }
     }
 }
