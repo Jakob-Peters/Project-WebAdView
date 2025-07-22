@@ -59,10 +59,6 @@ struct HomepageView: View {
             .padding()
             .navigationTitle("Demo Homepage")
             .onAppear {
-                if showConsentOnAppear {
-                    Didomi.shared.showNotice()
-                    showConsentOnAppear = false
-                }
                 homepageWebAdKey = UUID() // Only update if you want to force reload
             }
         }

@@ -18,9 +18,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         Didomi.shared.onReady {
             print("[SN] Didomi SDK is ready")
-            // Only initialize other SDKs here!
-            // e.g. WebAdView.shared.initialize()
-            // e.g. AdSDK.shared.start()
+            
+            // Set up global consent change listener
+            let didomiEventListener = EventListener()
+            
+            didomiEventListener.onConsentChanged = { event in
+                print("[SN] Consent event received")
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("DidomiConsentChanged"), object: nil)
+                }
+            }
+            
+            Didomi.shared.addEventListener(listener: didomiEventListener)
         }
         return true
     }
