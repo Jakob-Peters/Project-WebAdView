@@ -13,7 +13,7 @@ struct HomepageView: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(homepageWebAdKey)
-                    .frame(width: 320, height: 320)
+                    //.frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 50)
 
@@ -86,10 +86,9 @@ struct Article1View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true, text: "Custom annonce text", font: .caption.bold())
                     .id(UUID())
-                    .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 8)
                 // Filler text blocks
@@ -114,10 +113,9 @@ struct Article2View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
                 // Filler text before ad
@@ -128,10 +126,9 @@ struct Article2View: View {
                 """)
                     .padding()
                 // Ad unit WebView in the middle
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_2")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(width: 300, height: 250)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
                 // More filler text
@@ -157,10 +154,9 @@ struct Article3View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
                 // Filler text before first ad
@@ -171,10 +167,9 @@ struct Article3View: View {
                 """)
                     .padding()
                 // First ad unit WebView
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_2")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
                 // More filler text
@@ -185,10 +180,9 @@ struct Article3View: View {
                 """)
                     .padding()
                 // Second ad unit WebView
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_3")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_3")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
                 // Final filler text

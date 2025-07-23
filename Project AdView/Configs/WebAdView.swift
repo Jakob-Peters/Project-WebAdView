@@ -20,18 +20,61 @@ struct WebAdView: View {
     let adUnitId: String
     @EnvironmentObject var debugSettings: DebugSettings
 
-    // Ad label properties
+    //MARK: Ad label properties
     var showAdLabel: Bool = false
     var adLabelText: String = "annonce"
     var adLabelFont: Font = .system(size: 10, weight: .bold)
 
-    init(adUnitId: String, showAdLabel: Bool = false, adLabelText: String = "annonce", adLabelFont: Font = .system(size: 14, weight: .bold)) {
+    // Dynamic ad size state
+    @State private var adSize: CGSize
+
+    // Initial and constraint properties
+    var initialWidth: CGFloat
+    var initialHeight: CGFloat
+    var minWidth: CGFloat?
+    var maxWidth: CGFloat?
+    var minHeight: CGFloat?
+    var maxHeight: CGFloat?
+
+    //MARK: WebAdView config
+    /// Initializes a new instance of the WebAdView with the specified configuration.
+    ///
+    /// - Parameters:
+    ///   - adUnitId: The unique identifier for the ad unit to be displayed.
+    ///   - showAdLabel: A Boolean value indicating whether to show the ad label. Defaults to `false`.
+    ///   - adLabelText: The text to display in the ad label. Defaults to `"annonce"`.
+    ///   - adLabelFont: The font to use for the ad label text. Defaults to `.system(size: 10, weight: .bold)`.
+    ///   - initialWidth: The initial width of the ad view. Defaults to `320`.
+    ///   - initialHeight: The initial height of the ad view. Defaults to `320`.
+    ///   - minWidth: The minimum width of the ad view. Optional.
+    ///   - maxWidth: The maximum width of the ad view. Optional.
+    ///   - minHeight: The minimum height of the ad view. Optional.
+    ///   - maxHeight: The maximum height of the ad view. Optional.
+    init(
+        adUnitId: String,
+        showAdLabel: Bool = false,
+        adLabelText: String = "annonce",
+        adLabelFont: Font = .system(size: 10, weight: .bold),
+        initialWidth: CGFloat = 320,  
+        initialHeight: CGFloat = 320, 
+        minWidth: CGFloat? = nil,
+        maxWidth: CGFloat? = nil,
+        minHeight: CGFloat? = nil,
+        maxHeight: CGFloat? = nil
+    ) {
         self.adUnitId = adUnitId
         self.showAdLabel = showAdLabel
         self.adLabelText = adLabelText
         self.adLabelFont = adLabelFont
+        self.initialWidth = initialWidth
+        self.initialHeight = initialHeight
+        self.minWidth = minWidth
+        self.maxWidth = maxWidth
+        self.minHeight = minHeight
+        self.maxHeight = maxHeight
+        _adSize = State(initialValue: CGSize(width: initialWidth, height: initialHeight))
     }
-    
+
     // MARK: - Ad Label Modifier
     func showAdLabel(_ show: Bool = true, text: String = "annonce", font: Font = .system(size: 10, weight: .bold)) -> WebAdView {
         var copy = self
@@ -40,7 +83,7 @@ struct WebAdView: View {
         copy.adLabelFont = font
         return copy
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             if showAdLabel {
@@ -51,8 +94,19 @@ struct WebAdView: View {
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 5)
             }
-            WebViewRepresentable(adUnitId: adUnitId, baseURL: baseURL)
-                .environmentObject(debugSettings)
+            WebViewRepresentable(adUnitId: adUnitId, baseURL: baseURL, onAdSizeChange: { size in
+                // Clamp size to min/max constraints if provided
+                let clampedWidth = min(max(size.width, minWidth ?? size.width), maxWidth ?? size.width)
+                let clampedHeight = min(max(size.height, minHeight ?? size.height), maxHeight ?? size.height)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.adSize = CGSize(width: clampedWidth, height: clampedHeight)
+                }
+            })
+            .environmentObject(debugSettings)
+            .frame(
+                width: adSize.width,
+                height: adSize.height
+            )
         }
     }
 }
@@ -61,10 +115,12 @@ struct WebAdView: View {
 private struct WebViewRepresentable: UIViewControllerRepresentable {
     let adUnitId: String
     let baseURL: String
+    var onAdSizeChange: ((CGSize) -> Void)?
     @EnvironmentObject var debugSettings: DebugSettings
 
     func makeUIViewController(context: Context) -> WebAdViewController {
         let controller = WebAdViewController(baseURL: baseURL, adUnitId: adUnitId, debugSettings: debugSettings)
+        controller.onAdSizeChange = onAdSizeChange
         let id = ObjectIdentifier(controller).hashValue
         debugPrint("[SN] [NATIVE] WebAdView.makeUIViewController: Created controller [\(id)] with adUnitId: \(adUnitId)")
         return controller
@@ -82,8 +138,10 @@ private struct WebViewRepresentable: UIViewControllerRepresentable {
 }
 
 //MARK: WebAdViewController
-
 class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler {
+    
+    //MARK: Callback for ad size changes
+    var onAdSizeChange: ((CGSize) -> Void)?
     private let baseURL: String
     private let adUnitId: String
     private var debugSettings: DebugSettings
@@ -180,11 +238,19 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
 
     // MARK: HTML WKScriptMessageHandler - JS Bridge
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        if let dict = message.body as? [String: Any],
-           let type = dict["type"] as? String, type == "console" {
-            let level = dict["level"] as? String ?? "log"
-            let msg = dict["message"] as? String ?? ""
-            debugPrint("[SN] [WebAdView] [HTML] [\(level.uppercased())] \(msg)")
+        if let dict = message.body as? [String: Any], let type = dict["type"] as? String {
+            if type == "console" {
+                let level = dict["level"] as? String ?? "log"
+                let msg = dict["message"] as? String ?? ""
+                debugPrint("[SN] [WebAdView] [HTML] [\(level.uppercased())] \(msg)")
+            } else if type == "adSize" {
+                if let width = dict["width"] as? CGFloat, let height = dict["height"] as? CGFloat {
+                    debugPrint("[SN] [WebAdView] [HTML] [adSize] width: \(width), height: \(height)")
+                    onAdSizeChange?(CGSize(width: width, height: height))
+                }
+            } else {
+                debugPrint("[SN] [WebAdView] [HTML] [Unknown type]", dict)
+            }
         } else {
             debugPrint("[SN] [WebAdView] [HTML] ", message.body)
         }
@@ -207,7 +273,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         guard let webView = webView else { return }
         hasLoadedContent = true
 
-        // JS injections START 
+        //MARK: START JavaScript injections
         // Inject Didomi consent at document start using WKUserScript
         let didomiJavaScriptCode = Didomi.shared.getJavaScriptForWebView()
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
@@ -298,7 +364,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         let adUnitIdScript = WKUserScript(source: adUnitIdJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(adUnitIdScript)
         debugPrint("[SN] [NATIVE] Injected adUnitId to JS (window.stepnetwork.adUnitId): \(self.adUnitId)")
-        // JS injections END
+        //MARK: END JavaScript injections
 
         // Add random query param to avoid caching
         let randomValue = UUID().uuidString

@@ -68,37 +68,72 @@
     
     <div class="ad-container"
         style="width:100vw; height:100vh; min-height:100vh; min-width:100vw; padding:0; margin:0; display:flex; align-items:center; justify-content:center;">
-        
         <script>
-            function waitForAdUnitId(callback, maxTries = 500, tries = 0) {
-              if (window.stepnetwork && window.stepnetwork.adUnitId) {
-                callback(window.stepnetwork.adUnitId);
-              } else if (tries < maxTries) {
-                setTimeout(() => waitForAdUnitId(callback, maxTries, tries + 1), 10);
-              } else {
-                console.error('adUnitId was not set in time');
-              }
-            }
-              
-          waitForAdUnitId(function(adUnitId) {
-            // 1. Create the ad div
-            var adDiv = document.createElement('div');
-            adDiv.setAttribute('data-ay-manager-id', adUnitId);
-            adDiv.id = adUnitId;
-            // Use querySelector for class
-            var container = document.querySelector('.ad-container');
-            if (container) {
-              container.appendChild(adDiv);
-            } else {
-              console.error('Ad container not found');
-            }
-        
-            // 2. Call Yield Manager to display the ad
-            window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
-            window.ayManagerEnv.cmd.push(function () {
-              ayManagerEnv.display(adUnitId);
+        function waitForAdUnitId(callback, maxTries = 500, tries = 0) {
+          if (window.stepnetwork && window.stepnetwork.adUnitId) {
+            callback(window.stepnetwork.adUnitId);
+          } else if (tries < maxTries) {
+            setTimeout(() => waitForAdUnitId(callback, maxTries, tries + 1), 10);
+          } else {
+            console.error('adUnitId was not set in time');
+          }
+        }
+
+        function sendAdSizeToNative(width, height) {
+          // Only send if neither width nor height is zero
+          if (width !== 0 && height !== 0 && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge) {
+            window.webkit.messageHandlers.nativeBridge.postMessage({
+              type: "adSize",
+              width: width,
+              height: height
             });
+          }
+        }
+
+        function observeAdSize(adDiv) {
+          if (!adDiv) return;
+          let lastWidth = 0, lastHeight = 0;
+          function notifyIfChanged() {
+            const rect = adDiv.getBoundingClientRect();
+            const width = Math.round(rect.width);
+            const height = Math.round(rect.height);
+            if (width !== lastWidth || height !== lastHeight) {
+              lastWidth = width;
+              lastHeight = height;
+              sendAdSizeToNative(width, height);
+            }
+          }
+          if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => notifyIfChanged());
+            ro.observe(adDiv);
+          } else {
+            // Fallback: poll every 250ms
+            setInterval(notifyIfChanged, 250);
+          }
+          // Initial notify
+          notifyIfChanged();
+        }
+
+        waitForAdUnitId(function(adUnitId) {
+          // 1. Create the ad div
+          var adDiv = document.createElement('div');
+          adDiv.setAttribute('data-ay-manager-id', adUnitId);
+          adDiv.id = adUnitId;
+          // Use querySelector for class
+          var container = document.querySelector('.ad-container');
+          if (container) {
+            container.appendChild(adDiv);
+            observeAdSize(adDiv);
+          } else {
+            console.error('Ad container not found');
+          }
+
+          // 2. Call Yield Manager to display the ad
+          window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
+          window.ayManagerEnv.cmd.push(function () {
+            ayManagerEnv.display(adUnitId);
           });
+        });
         </script>
     </div>
 </body>

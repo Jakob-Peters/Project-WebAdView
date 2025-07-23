@@ -54,19 +54,19 @@
   - [X] Implement WebView unloading on view navigation
   - [X] Set up WebView reloading for new views
   - [X] Handle memory management for WebView instances
-- [ ] **3f. Ad Label**
-  - [ ] Implement an Ad Label via the WebAdView.
+- [X] **3f. Ad Label**
+  - [X] Implement an Ad Label via the WebAdView.
 
 ### Module 4: Advanced JS Communication & Dynamic Sizing
 - [X] **4a. Console Log Bridge**
   - [X] Capture WebView console logs in native view
   - [X] Forward console.log, console.error, console.warn to Xcode logs
   - [X] Implement log filtering and formatting
-- [ ] **4b. Dynamic Frame Sizing**
-  - [ ] Detect ad unit dimensions from WebView
-  - [ ] Communicate size changes to native view
-  - [ ] Update SwiftUI frame sizes dynamically
-  - [ ] Handle size change animations and layout updates
+- [X] **4b. Dynamic Frame Sizing**
+  - [X] Detect ad unit dimensions from WebView
+  - [X] Communicate size changes to native view
+  - [X] Update SwiftUI frame sizes dynamically
+  - [X] Handle size change animations and layout updates
 
 ### Module 5: Native View Lazy Loading (Two Tier)
 - [ ] **5a. Distance-Based WebView Fetching**
@@ -86,19 +86,19 @@
   - [ ] Prevent duplicate fetch/display calls
 
 ### Module 6: Debugging Infrastructure
-- [ ] **6a. Debug Mode Toggle**
+- [X] **6a. Debug Mode Toggle**
   - [X] Implement easy debug enabler for console logs
   - [X] Add debug mode for both WebView and native view
   - [X] Create debug configuration management
 - [ ] **6b. Yield Manager Debug Integration**
-  - [ ] Add debug query parameter to WebView URL
-  - [ ] Enable Yield Manager debugging within WebView
-  - [ ] Implement debug parameter configuration
+  - [X] Add debug query parameter to WebView URL
+  - [X] Enable Yield Manager debugging within WebView
+  - [X] Implement debug parameter configuration
 - [ ] **6c. UI Debug Overlay**
   - [ ] Add debugging information overlay in WebView
-  - [ ] Integrate Publisher Console from gpt.js
+  - [X] Integrate Publisher Console from gpt.js
   - [ ] Create debug UI controls within WebView
-  - [ ] Implement overlay toggle functionality
+  - [X] Implement overlay toggle functionality
 
 ## 🔧 Key Technical Features
 
