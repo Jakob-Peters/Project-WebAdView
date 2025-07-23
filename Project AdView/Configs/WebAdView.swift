@@ -279,6 +279,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(userScript)
 
+        //MARK: Debugging script
         let debuggingPanel = """
             (function() {
                 // Create debug info panel
@@ -354,9 +355,8 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
             let debuggingPanelScript = WKUserScript(source: debuggingPanel, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
             webView.configuration.userContentController.addUserScript(debuggingPanelScript)
         }
-        
 
-        // Inject adUnitId as a WKUserScript at document start
+        //MARK: AdunitId injection
         let adUnitIdJS = """
         window.stepnetwork = window.stepnetwork || {}; window.stepnetwork.adUnitId = '\(self.adUnitId)';
         console.log('Injected adUnitId to JS, value: ' + window.stepnetwork.adUnitId);

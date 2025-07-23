@@ -13,7 +13,6 @@ struct HomepageView: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(homepageWebAdKey)
-                    //.frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 50)
 
