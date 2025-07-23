@@ -32,6 +32,8 @@ Project AdView is a SwiftUI-based demo app that showcases how to display ad cont
 
 ### 3. Homepage and Articles (Demo)
 - The homepage and each article can display one or more `WebAdView` ad units.
+- The homepage is now fully scrollable: all content (ads, navigation links, consent button) is wrapped in a `ScrollView`, so you can always scroll to the bottom regardless of content height or number of ads.
+- Fixed heights and unnecessary spacers have been removed from the homepage, allowing content to flow naturally and preventing layout issues when adding more ads or content.
 - Navigation between articles is supported.
 - The homepage features a toolbar with a ladybug icon for toggling debug mode.
 
@@ -41,9 +43,16 @@ Project AdView is a SwiftUI-based demo app that showcases how to display ad cont
 - **Persistent State:** The debug flag is saved in `UserDefaults` and restored on app launch.
 - **Conditional Logging:** All `print()` statements in the app are replaced with `debugPrint()`, which only outputs when debugging is enabled.
 
-## How to Use WebAdView
 
-### Basic Usage
+### How to Use WebAdView
+
+#### Best Practices for Layout
+
+- **Always wrap your main content in a `ScrollView`** if you have multiple ads or content that may exceed the screen height. This ensures all content (including the consent button) is always reachable.
+- **Avoid unnecessary `Spacer()`s and fixed heights** in your main layout. Let the content flow naturally, and use `.frame(maxWidth: .infinity, alignment: .top)` for ad units to keep them pinned to the top of their container.
+- **If you want to force a reload of a `WebAdView`,** use `.id(UUID())` or a state variable as the `.id`.
+
+#### Basic Usage
 
 ```swift
 // Minimal usage (uses default initial size 320x320, no constraints)
@@ -53,7 +62,7 @@ WebAdView(adUnitId: "div-gpt-ad-mobile_1")
     .frame(maxWidth: .infinity, alignment: .center)
 ```
 
-### Custom Initial Size
+#### Custom Initial Size
 
 ```swift
 // Set a custom initial size (e.g. 300x250)
@@ -62,7 +71,7 @@ WebAdView(adUnitId: "div-gpt-ad-mobile_2", initialWidth: 300, initialHeight: 250
     .frame(maxWidth: .infinity, alignment: .center)
 ```
 
-### Minimum and Maximum Constraints
+#### Minimum and Maximum Constraints
 
 ```swift
 // Set min/max width and height constraints
@@ -79,7 +88,7 @@ WebAdView(
     .frame(maxWidth: .infinity, alignment: .center)
 ```
 
-### Custom Ad Label
+#### Custom Ad Label
 
 ```swift
 // Show a custom ad label with custom text and font
@@ -88,7 +97,7 @@ WebAdView(adUnitId: "div-gpt-ad-mobile_1")
     .frame(maxWidth: .infinity, alignment: .center)
 ```
 
-### Forcing Reloads
+#### Forcing Reloads
 
 ```swift
 // Use .id(UUID()) to force the ad view to reload (e.g. on navigation)
