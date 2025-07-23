@@ -14,15 +14,54 @@ private func debugPrint(_ items: Any..., separator: String = " ", terminator: St
 }
 
 //MARK: WebAdView
-struct WebAdView: UIViewControllerRepresentable {
+struct WebAdView: View {
     // Suppress Didomi web notice via query string
     private let baseURL = "https://adops.stepdev.dk/wp-content/ad-template.html?didomi-disable-notice=true"
     let adUnitId: String
     @EnvironmentObject var debugSettings: DebugSettings
 
-    init(adUnitId: String) {
+    // Ad label properties
+    var showAdLabel: Bool = false
+    var adLabelText: String = "annonce"
+    var adLabelFont: Font = .system(size: 10, weight: .bold)
+
+    init(adUnitId: String, showAdLabel: Bool = false, adLabelText: String = "annonce", adLabelFont: Font = .system(size: 14, weight: .bold)) {
         self.adUnitId = adUnitId
+        self.showAdLabel = showAdLabel
+        self.adLabelText = adLabelText
+        self.adLabelFont = adLabelFont
     }
+    
+    // MARK: - Ad Label Modifier
+    func showAdLabel(_ show: Bool = true, text: String = "annonce", font: Font = .system(size: 10, weight: .bold)) -> WebAdView {
+        var copy = self
+        copy.showAdLabel = show
+        copy.adLabelText = text
+        copy.adLabelFont = font
+        return copy
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            if showAdLabel {
+                Text(adLabelText)
+                    .font(adLabelFont)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 5)
+            }
+            WebViewRepresentable(adUnitId: adUnitId, baseURL: baseURL)
+                .environmentObject(debugSettings)
+        }
+    }
+}
+
+// MARK: - Internal UIViewControllerRepresentable
+private struct WebViewRepresentable: UIViewControllerRepresentable {
+    let adUnitId: String
+    let baseURL: String
+    @EnvironmentObject var debugSettings: DebugSettings
 
     func makeUIViewController(context: Context) -> WebAdViewController {
         let controller = WebAdViewController(baseURL: baseURL, adUnitId: adUnitId, debugSettings: debugSettings)

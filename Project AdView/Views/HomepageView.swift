@@ -11,10 +11,11 @@ struct HomepageView: View {
             VStack(spacing: 32) {
                 // Ad unit WebView
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                    .showAdLabel(true)
                     .id(homepageWebAdKey)
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 32)
+                    .padding(.top, 50)
 
                 Text("Articles")
                     .font(.title2)
@@ -55,8 +56,6 @@ struct HomepageView: View {
                         .cornerRadius(8)
                 }
                 .padding(.bottom, 4)
-
-                // Debug toggle moved to toolbar icon
             }
             .padding()
             .navigationTitle("Demo Homepage")
@@ -88,6 +87,7 @@ struct Article1View: View {
                     .bold()
                 // Ad unit WebView in the top
                     WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                    .showAdLabel(true, text: "Custom annonce text", font: .caption.bold())
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -115,6 +115,7 @@ struct Article2View: View {
                     .bold()
                 // Ad unit WebView in the top
                     WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                    .showAdLabel(true)
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -128,6 +129,7 @@ struct Article2View: View {
                     .padding()
                 // Ad unit WebView in the middle
                     WebAdView(adUnitId: "div-gpt-ad-mobile_2")
+                    .showAdLabel(true)
                     .id(UUID())
                     .frame(width: 300, height: 250)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -156,6 +158,7 @@ struct Article3View: View {
                     .bold()
                 // Ad unit WebView in the top
                     WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                    .showAdLabel(true)
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -169,6 +172,7 @@ struct Article3View: View {
                     .padding()
                 // First ad unit WebView
                     WebAdView(adUnitId: "div-gpt-ad-mobile_2")
+                    .showAdLabel(true)
                     .id(UUID())
                     .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -182,6 +186,7 @@ struct Article3View: View {
                     .padding()
                 // Second ad unit WebView
                     WebAdView(adUnitId: "div-gpt-ad-mobile_3")
+                    .showAdLabel(true)
                     .id(UUID())
                     .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
