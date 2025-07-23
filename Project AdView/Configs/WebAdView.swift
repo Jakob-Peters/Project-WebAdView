@@ -16,7 +16,7 @@ private func debugPrint(_ items: Any..., separator: String = " ", terminator: St
 //MARK: WebAdView
 struct WebAdView: UIViewControllerRepresentable {
     // Suppress Didomi web notice via query string
-    private let baseURL = "https://adops.stepdev.dk/wp-content/ad-template.html?didomi-disable-notice=true&aym_debug=true"
+    private let baseURL = "https://adops.stepdev.dk/wp-content/ad-template.html?didomi-disable-notice=true"
     let adUnitId: String
     @EnvironmentObject var debugSettings: DebugSettings
 
@@ -259,13 +259,19 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         let adUnitIdScript = WKUserScript(source: adUnitIdJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(adUnitIdScript)
         debugPrint("[SN] [NATIVE] Injected adUnitId to JS (window.stepnetwork.adUnitId): \(self.adUnitId)")
-
         // JS injections END
-
 
         // Add random query param to avoid caching
         let randomValue = UUID().uuidString
         var urlString = baseURL
+        // Append &aym_debug=true if debugging is enabled
+        if debugSettings.isDebugEnabled {
+            if urlString.contains("?") {
+                urlString += "&aym_debug=true"
+            } else {
+                urlString += "?aym_debug=true"
+            }
+        }
         if urlString.contains("?") {
             urlString += "&rnd=\(randomValue)"
         } else {

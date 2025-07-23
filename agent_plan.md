@@ -54,6 +54,8 @@
   - [X] Implement WebView unloading on view navigation
   - [X] Set up WebView reloading for new views
   - [X] Handle memory management for WebView instances
+- [ ] **3f. Ad Label**
+  - [ ] Implement an Ad Label via the WebAdView.
 
 ### Module 4: Advanced JS Communication & Dynamic Sizing
 - [X] **4a. Console Log Bridge**
