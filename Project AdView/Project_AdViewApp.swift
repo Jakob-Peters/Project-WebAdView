@@ -8,6 +8,15 @@
 import SwiftUI
 import Didomi
 
+// MARK: - Debug Helper
+private func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    // Check UserDefaults directly for debug setting
+    let isDebugEnabled = UserDefaults.standard.bool(forKey: "isDebugEnabled")
+    if isDebugEnabled {
+        print(items, separator: separator, terminator: terminator)
+    }
+}
+
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         let parameters = DidomiInitializeParameters(
@@ -17,13 +26,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         Didomi.shared.initialize(parameters)
 
         Didomi.shared.onReady {
-            print("[SN] [NATIVE] Didomi SDK is ready")
+            debugPrint("[SN] [NATIVE] Didomi SDK is ready")
             
             // Set up global consent change listener
             let didomiEventListener = EventListener()
             
             didomiEventListener.onConsentChanged = { event in
-                print("[SN] [NATIVE] Consent event received")
+                debugPrint("[SN] [NATIVE] Consent event received")
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: NSNotification.Name("DidomiConsentChanged"), object: nil)
                 }
@@ -38,9 +47,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct Project_AdViewApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var debugSettings = DebugSettings()
     var body: some Scene {
         WindowGroup {
             HomepageView()
+                .environmentObject(debugSettings)
         }
     }
 }

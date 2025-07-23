@@ -31,8 +31,8 @@
   - [X] Test consent flow and status updates
 - [X] **2d. Passing consent info to webview**
   - [X] Setup the SDK for passing consent info via JS to webview.
-  - [X] Setup the HTML template for recieving external consent signal
-  - [X] Fix HTML template to not open consent notice
+  - [X] Setup the HTML template for recieving external consent signal.
+  - [X] Fix HTML template to not open consent notice.
 
 ### Module 3: WebView Setup & Basic Communication
 - [X] **3a. WebView Integration**
@@ -42,24 +42,24 @@
 - [X] **3b. WebView config for ads - Media content & external click**
   - [X] - Media Content Configuration in webview
   - [X] - Optimize WKWebView Click Behavior
-- [ ] **3c. JavaScript Bridge Setup**
-  - [ ] Set up WKScriptMessageHandler for native-to-JS communication
-  - [ ] Implement basic message passing from native to WebView
-  - [ ] Test bidirectional communication
-- [ ] **3d. Ad Unit Variable Passing**
-  - [ ] Pass ad unit IDs from native view to WebView
-  - [ ] Configure ad unit parameters via JS communication
-  - [ ] Implement ad unit identification system
-- [ ] **3e. WebView Lifecycle Management**
+- [X] **3c. JavaScript Bridge Setup**
+  - [X] Set up WKScriptMessageHandler for native-to-JS communication
+  - [X] Implement basic message passing from native to WebView
+  - [X] Test bidirectional communication
+- [X] **3d. Ad Unit Variable Passing**
+  - [X] Pass ad unit IDs from native view to WebView
+  - [X] Configure ad unit parameters via JS communication
+  - [X] Implement ad unit identification system
+- [X] **3e. WebView Lifecycle Management**
   - [X] Implement WebView unloading on view navigation
   - [X] Set up WebView reloading for new views
   - [X] Handle memory management for WebView instances
 
 ### Module 4: Advanced JS Communication & Dynamic Sizing
-- [ ] **4a. Console Log Bridge**
-  - [ ] Capture WebView console logs in native view
-  - [ ] Forward console.log, console.error, console.warn to Xcode logs
-  - [ ] Implement log filtering and formatting
+- [X] **4a. Console Log Bridge**
+  - [X] Capture WebView console logs in native view
+  - [X] Forward console.log, console.error, console.warn to Xcode logs
+  - [X] Implement log filtering and formatting
 - [ ] **4b. Dynamic Frame Sizing**
   - [ ] Detect ad unit dimensions from WebView
   - [ ] Communicate size changes to native view
@@ -85,9 +85,9 @@
 
 ### Module 6: Debugging Infrastructure
 - [ ] **6a. Debug Mode Toggle**
-  - [ ] Implement easy debug enabler for console logs
-  - [ ] Add debug mode for both WebView and native view
-  - [ ] Create debug configuration management
+  - [X] Implement easy debug enabler for console logs
+  - [X] Add debug mode for both WebView and native view
+  - [X] Create debug configuration management
 - [ ] **6b. Yield Manager Debug Integration**
   - [ ] Add debug query parameter to WebView URL
   - [ ] Enable Yield Manager debugging within WebView

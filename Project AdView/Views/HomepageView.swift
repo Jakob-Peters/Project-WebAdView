@@ -3,14 +3,14 @@ import Didomi
 
 //MARK: Homepage view
 struct HomepageView: View {
+    @EnvironmentObject var debugSettings: DebugSettings
     @State private var showConsentOnAppear = true
-
     @State private var homepageWebAdKey = UUID()
     var body: some View {
         NavigationView {
             VStack(spacing: 32) {
                 // Ad unit WebView
-                WebAdView()
+                WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .id(homepageWebAdKey)
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -54,10 +54,21 @@ struct HomepageView: View {
                         .background(Color.secondary.opacity(0.1))
                         .cornerRadius(8)
                 }
-                .padding(.bottom, 16)
+                .padding(.bottom, 4)
+
+                // Debug toggle moved to toolbar icon
             }
             .padding()
             .navigationTitle("Demo Homepage")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { debugSettings.isDebugEnabled.toggle() }) {
+                        Image(systemName: debugSettings.isDebugEnabled ? "ladybug.fill" : "ladybug")
+                            .foregroundColor(debugSettings.isDebugEnabled ? .red : .primary)
+                            .accessibilityLabel("Toggle Debug Mode")
+                    }
+                }
+            }
             .onAppear {
                 homepageWebAdKey = UUID() // Only update if you want to force reload
             }
@@ -76,7 +87,7 @@ struct Article1View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -103,7 +114,7 @@ struct Article2View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -116,7 +127,7 @@ struct Article2View: View {
                 """)
                     .padding()
                 // Ad unit WebView in the middle
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .id(UUID())
                     .frame(width: 300, height: 250)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -144,7 +155,7 @@ struct Article3View: View {
                     .font(.largeTitle)
                     .bold()
                 // Ad unit WebView in the top
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .id(UUID())
                     .frame(width: 320, height: 320)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -157,7 +168,7 @@ struct Article3View: View {
                 """)
                     .padding()
                 // First ad unit WebView
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .id(UUID())
                     .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -170,7 +181,7 @@ struct Article3View: View {
                 """)
                     .padding()
                 // Second ad unit WebView
-                WebAdView()
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_3")
                     .id(UUID())
                     .frame(width: 320, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
