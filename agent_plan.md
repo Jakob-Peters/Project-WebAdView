@@ -323,4 +323,146 @@ Instead of building the project in phases, we'll implement complete functional m
 
 ---
 
+
+# Gemini plan / task for LL and viewability events:
+This document provides a comprehensive overview of the strategies, solutions, and challenges involved in building a WebView-based app with native lazy loading and accurate viewability tracking, drawing from our discussion.
+
+---
+
+## Project AdView: Native Lazy Loading & Accurate Viewability
+
+## 🚀 Development Modules Overview
+
+The Project AdView aims to create a WebView-based application with robust ad integration, focusing on a two-tier native lazy loading system and precise viewability tracking. The development is structured into six modules:
+
+* **Module 1: Demo Article App Setup** (Completed) - Basic SwiftUI app structure with homepage, article pages, and navigation.
+* **Module 2: Didomi SDK Integration** (Completed) - Handles user consent and passes it to WebViews.
+* **Module 3: WebView Setup & Basic Communication** (Completed) - Core `WKWebView` integration, JS bridge, ad unit passing, and lifecycle management.
+* **Module 4: Advanced JS Communication & Dynamic Sizing** (Completed) - Console log bridge and dynamic resizing of ad units based on WebView content.
+* **Module 5: Native View Lazy Loading (Two Tier)** (In Progress) - The core focus of recent discussions, implementing fetch and display events based on native scroll position.
+* **Module 6: Debugging Infrastructure** (Partially Completed) - Debug mode toggle and Yield Manager integration.
+
+---
+
+## Module 5: Native View Lazy Loading (Two Tier) - Detailed Plan
+
+This module is critical for performance and user experience, aiming to load and display ads only when they are approaching or within the user's viewport, similar to web-based lazy loading.
+
+### Problem: Inefficient Ad Loading & Rendering
+
+Loading all `WKWebView` instances and their ad content upfront, especially in long scrollable lists, leads to:
+* High memory consumption.
+* Increased CPU usage.
+* Slower initial load times for the application.
+* Wasted ad impressions for ads never seen by the user.
+
+### Solution: Distance-Based WebView Fetching & Display
+
+The strategy is to manage the lifecycle of `WKWebView` instances and their ad content based on their proximity to the user's visible screen area.
+
+#### 5a. Distance-Based WebView Fetching
+
+* **Objective:** Implement scroll position monitoring in the native SwiftUI view to determine when an ad unit is nearing the viewport.
+* **Mechanism:**
+    * **Scroll Position Monitoring:**
+        * **iOS 17+:** Utilize SwiftUI's `.scrollPosition($scrollPosition)` modifier on the `ScrollView` to bind the current scroll offset. Changes to `scrollPosition` will trigger visibility checks.
+        * **Older iOS Versions / Granular Control:** Employ `GeometryReader` within each `WebAdView` (or its container) combined with a `PreferenceKey`. This allows each ad unit to report its `CGRect` (frame) relative to a named `coordinateSpace` defined on the `ScrollView`. The `ScrollView`'s own visible bounds are then compared against these collected frames.
+    * **Visibility Calculation:**
+        * Define configurable thresholds: `fetchDistance` (e.g., 200px from viewport edge) and `renderDistance` (e.g., 100px from viewport edge).
+        * For each `WebAdView`, compare its frame's `minY` and `maxY` with the `ScrollView`'s current visible `minY` and `maxY` (adjusted by `scrollOffset`).
+    * **WebView Lifecycle States:** Introduce an `AdLoadState` enum (e.g., `notCreated`, `fetched`, `rendered`) for each `WebAdView` instance.
+    * **Loading Logic:**
+        * When an ad unit's top edge enters `fetchDistance` from the visible screen, transition its state to `fetched`. This triggers `WKWebView` creation and base HTML loading if not already done.
+        * When an ad unit's top edge enters `renderDistance`, and it's already `fetched`, transition its state to `rendered`.
+
+#### 5b. JS Fetch Event System
+
+* **Objective:** Send a JavaScript "fetch" event to the `WKWebView` when the native view determines it's at `fetchDistance`.
+* **Mechanism:**
+    * Once a `WebAdView`'s state changes to `.fetched`, the native SwiftUI code will execute JavaScript using `webView.evaluateJavaScript("ayManager.fetch('\(adUnitId)');")`.
+    * The JavaScript function `ayManager.fetch()` should be designed to *only* initiate the ad request (e.g., to Google Ad Manager or Prebid) without immediately rendering the ad creative. This allows for pre-bidding or pre-loading of ad data.
+    * Implement optional JavaScript callbacks to communicate fetch completion back to the native side if needed, allowing for more granular state tracking (`readyToRender`).
+
+#### 5c. JS Display Event System
+
+* **Objective:** Send a JavaScript "display" event to the `WKWebView` when the native view determines it's at `renderDistance`.
+* **Mechanism:**
+    * When a `WebAdView`'s state changes to `.rendered`, the native SwiftUI code will execute JavaScript: `webView.evaluateJavaScript("ayManager.display('\(adUnitId)');")`.
+    * The JavaScript function `ayManager.display()` will then trigger the actual rendering of the ad creative within the WebView's HTML content.
+
+### General Considerations for Lazy Loading:
+
+* **Performance:**
+    * **Debounce/Throttle:** Limit the frequency of native-to-JS communication for visibility updates to prevent performance issues.
+    * **Memory Management:** Implement explicit logic to unload/deallocate `WKWebView` instances when they scroll far out of view to free up memory.
+* **Initial Load:** Ads visible on initial screen load should be fetched and rendered immediately without waiting for scroll events.
+* **State Management:** Utilize `@State` or `@ObservedObject` within `WebAdView` to manage the `AdLoadState` and trigger UI/JS updates.
+
+---
+
+## Viewability Tracking Problem & Solution
+
+### Problem: Inaccurate Viewability Reporting
+
+Ad servers (e.g., GAM via `gpt.js`, Prebid wrappers like `ayManager`) determine viewability relative to the `WKWebView`'s frame, not the native app's screen. If a `WKWebView` is partially off-screen in the native view but entirely visible within its own frame, the ad server might incorrectly report 100% viewability, leading to discrepancies.
+
+### Proposed Solution: Native-Controlled CSS Overlay
+
+The idea is to use native-to-JS communication to control a CSS overlay within the `WKWebView` that visually masks parts of the ad not visible on the native screen.
+
+#### Mechanism:
+
+1.  **Native Visibility Calculation (Source of Truth):**
+    * Leverage the same native scroll position monitoring (from Module 5a) to precisely calculate the *true visible portion* of each `WebAdView` on the native screen (e.g., visible percentage, or the `top`, `bottom` coordinates of the visible area relative to the ad's full height).
+    * This native calculation is paramount.
+
+2.  **Native-to-JS Communication:**
+    * Establish a dedicated JavaScript message channel to send the calculated viewability data (`adUnitId`, `visibleTop`, `visibleBottom`, `visiblePercentage`, etc.) to the respective `WKWebView`.
+    * Example: `webView.evaluateJavaScript("ayManager.updateViewability(\(adUnitId), { visibleTop: \(nativeVisibleTop), visibleBottom: \(nativeVisibleBottom) });")`
+
+3.  **WebView CSS Overlay (Masking):**
+    * Within the `WKWebView`'s HTML/CSS, for each ad unit, create a high-Z-index, transparent `div` element (the "overlay").
+    * The `ayManager.updateViewability()` JavaScript function will receive the native visibility data.
+    * It will then dynamically adjust the `top`, `left`, `width`, `height`, and potentially `opacity` of the CSS overlay to *cover* the portions of the ad that are *not* visible on the native screen.
+    * **Example Implementation:** If the native side reports that only the bottom 50% of the ad is visible, the JavaScript would adjust the overlay to cover the top 50% of the ad's container within the WebView.
+
+#### Advantages of this Approach:
+
+* **Leverages Existing Web Mechanisms:** Ad servers' viewability scripts (e.g., `IntersectionObserver`, DOM element checks) will perceive the CSS overlay as an obstruction, leading to more accurate reporting.
+* **Flexibility:** Provides fine-grained control over how viewability is presented to the ad server's client-side scripts.
+* **Practicality:** A more manageable solution than trying to deeply integrate with or rewrite ad server SDKs' viewability logic.
+
+### Potential Challenges and Mitigations:
+
+1.  **Real-time Updates and Jitter:**
+    * **Challenge:** Frequent, unthrottled updates can cause visual "flicker" or performance issues.
+    * **Mitigation:**
+        * **Debounce/Throttle:** Limit the frequency of `evaluateJavaScript` calls (e.g., every 50-100ms) from native to JS.
+        * **Smooth CSS Transitions:** Apply CSS `transition` properties to the overlay's dynamic properties (`top`, `height`, etc.) for smooth visual changes.
+        * **Buffer Zones:** Introduce a small pixel buffer (e.g., 10-20px) around the viewport edges when calculating visibility. This gives the WebView more time to react before the ad element fully crosses the true screen edge.
+        * **Focus on Thresholds:** Ad viewability is often percentage-based (e.g., 50% for 1 second). Pixel-perfect, instantaneous updates aren't always necessary; focus on accurately hitting those key thresholds.
+
+2.  **Performance Drag:**
+    * **Challenge:** Excessive `evaluateJavaScript` calls and DOM manipulation can be resource-intensive.
+    * **Mitigation:**
+        * **Batch JS Calls:** If multiple ads are scrolling simultaneously, send a single JSON object containing data for all relevant ads in one `evaluateJavaScript` call, letting JS update multiple overlays.
+        * **Minimal DOM Changes:** Ensure JavaScript updates only the necessary CSS properties. Using `transform` (e.g., `translateY`) can be more performant than `top` or `margin` for positioning, as it often allows for hardware acceleration.
+        * **Profiling:** Use Xcode Instruments and browser developer tools (for WebView) to identify and address performance bottlenecks.
+
+3.  **Ad Server SDK Sophistication & Open Measurement SDK (OM SDK):**
+    * **Challenge:** Some ad server SDKs might employ more advanced viewability detection that could be harder to "mask" with a simple CSS overlay.
+    * **Mitigation:**
+        * **Thorough Testing:** Crucially, implement the solution and rigorously test the reported viewability metrics in your ad server's reporting dashboard. Compare against manual observation.
+        * **Investigate IAB Open Measurement SDK (OM SDK):** This is the **most robust and recommended solution** if your ad partners support it.
+            * **Concept:** OM SDK provides a standard API for third-party viewability measurement across native apps and web views. It consists of a native library and a JavaScript API (OMID).
+            * **Integration:** You would register your `WKWebView` instance with the native OM SDK, providing it with the `WKWebView`'s `CGRect` relative to the native screen. The OM SDK then handles the complex viewability calculations and communicates with the ad server's JavaScript (which would also need to be integrated with OMID).
+            * **Benefit:** This offloads the viewability complexity to a specialized, industry-standard SDK, ensuring higher accuracy and broader compatibility without needing custom CSS masking.
+            * **Action:** Research specific integration guides for OM SDK with `WKWebView` for iOS, and verify if your ad partners (GAM, Prebid, etc.) support and recommend its use. This is often the preferred method for major ad platforms.
+
+---
+
+## Conclusion
+
+The project is well-structured and has a clear path forward for implementing native lazy loading. The proposed CSS overlay approach for viewability tracking is a viable and commonly used method for bridging the gap between WebView-based ads and native screen visibility. However, the ultimate goal for viewability should be to explore and integrate with the **Open Measurement SDK** if supported by your ad partners, as it offers the most reliable and standardized solution for in-app ad measurement. By focusing on performance optimizations and thorough testing, a highly functional and performant ad view system can be achieved.
+
 **Note**: This modular approach allows for focused development, easier testing, and clearer progress tracking. Each module builds upon the previous ones while maintaining distinct functional boundaries.
