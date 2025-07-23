@@ -10,9 +10,10 @@ struct HomepageView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .center, spacing: 32) {
-                    WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320)
-                        .showAdLabel(true)
-                        .id(homepageWebAdKey)
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320) // Predefined size ad unit for no native view shifting.
+                        .showAdLabel(true, text: "predefined size annonce")
+                        .id(UUID()) //Updating when new UUID is generated, when enabling/disabling debug mode - Not needed for production use.
+                        .id(homepageWebAdKey)   //Updating on each appearance - Due to it being main view of the app, this approach is needed. 
                         .frame(maxWidth: .infinity, alignment: .top)
                     Text("Articles")
                         .font(.title2)
@@ -75,7 +76,7 @@ struct HomepageView: View {
                 }
             }
             .onAppear {
-                homepageWebAdKey = UUID() // Only update if you want to force reload
+                homepageWebAdKey = UUID() //
             }
         }
         .background(DidomiWrapper()) // Ensures Didomi has a valid UIViewController for UI
