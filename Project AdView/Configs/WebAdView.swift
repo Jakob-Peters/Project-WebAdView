@@ -98,6 +98,7 @@ struct WebAdView: View {
                 // Clamp size to min/max constraints if provided
                 let clampedWidth = min(max(size.width, minWidth ?? size.width), maxWidth ?? size.width)
                 let clampedHeight = min(max(size.height, minHeight ?? size.height), maxHeight ?? size.height)
+                //Animation duration for size changes on native view
                 withAnimation(.easeInOut(duration: 0.2)) {
                     self.adSize = CGSize(width: clampedWidth, height: clampedHeight)
                 }
@@ -273,8 +274,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         guard let webView = webView else { return }
         hasLoadedContent = true
 
-        //MARK: START JavaScript injections
-        // Inject Didomi consent at document start using WKUserScript
+        //MARK: Inject Didomi consent
         let didomiJavaScriptCode = Didomi.shared.getJavaScriptForWebView()
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(userScript)
@@ -286,6 +286,35 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
                 var debugInfo = document.createElement('div');
                 debugInfo.id = 'debugInfo';
                 debugInfo.className = 'debug-info';
+
+                // Ad unit info
+                var adUnitDiv = document.createElement('div');
+                adUnitDiv.id = 'adUnitInfo';
+                adUnitDiv.textContent = 'Ad unit: ' + (window.stepnetwork && window.stepnetwork.adUnitId ? window.stepnetwork.adUnitId : '(not set)');
+                debugInfo.appendChild(adUnitDiv);
+
+                // Recheck adUnitId every 100ms, up to 5 times
+                (function() {
+                    var attempts = 0;
+                    var maxAttempts = 5;
+                    var interval = setInterval(function() {
+                        attempts++;
+                        var adUnitId = (window.stepnetwork && window.stepnetwork.adUnitId) ? window.stepnetwork.adUnitId : null;
+                        if (adUnitId) {
+                            adUnitDiv.textContent = 'Ad unit: ' + adUnitId;
+                            clearInterval(interval);
+                        } else if (attempts >= maxAttempts) {
+                            adUnitDiv.textContent = 'Ad unit: unknown';
+                            clearInterval(interval);
+                        }
+                    }, 100);
+                })();
+                
+                // Ad size info
+                var adSizeDiv = document.createElement('div');
+                adSizeDiv.id = 'adSizeInfo';
+                adSizeDiv.textContent = 'Size: (not sent)';
+                debugInfo.appendChild(adSizeDiv);
 
                 // Create Google Publisher Console button container
                 var googleButton = document.createElement('div');
@@ -301,9 +330,9 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
                 button.addEventListener('click', function(event) {
                     event.preventDefault();
                     if (window.googletag && typeof googletag.openConsole === 'function') {
-                    googletag.openConsole();
+                        googletag.openConsole();
                     } else {
-                    alert('Google Publisher Console is not available.');
+                        alert('Google Publisher Console is not available.');
                     }
                 });
 
@@ -313,34 +342,45 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
 
                 // Add the debug panel to the body
                 document.body.appendChild(debugInfo);
-                })();
+
+                // Patch sendAdSizeToNative to update the debug panel
+                var origSendAdSizeToNative = window.sendAdSizeToNative;
+                window.sendAdSizeToNative = function(width, height) {
+                    if (adSizeDiv) {
+                        adSizeDiv.textContent = 'Size: ' + width + ' x ' + height;
+                    }
+                    if (typeof origSendAdSizeToNative === 'function') {
+                        origSendAdSizeToNative(width, height);
+                    }
+                };
+            })();
 
             (function() {
-            var methods = ['log', 'info', 'warn', 'error', 'debug'];
-            methods.forEach(function(level) {
-                var original = console[level];
-                console[level] = function() {
-                var args = Array.prototype.slice.call(arguments);
-                // Remove %c and its style argument
-                if (typeof args[0] === 'string' && args[0].includes('%c')) {
-                    args[0] = args[0].replace(/%c/g, '').trim();
-                    args.splice(1, 1); // Remove the style string
-                }
-                // Pretty-print objects/arrays, join with newlines for readability
-                var message = args.map(function(arg) {
-                    if (typeof arg === 'object' && arg !== null) {
-                    try { return JSON.stringify(arg, null, 2); } catch (e) { return '[Object]'; }
-                    }
-                    return String(arg);
-                }).join(' - ');
-                window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge.postMessage({
-                    type: 'console',
-                    level: level,
-                    message: message
+                var methods = ['log', 'info', 'warn', 'error', 'debug'];
+                methods.forEach(function(level) {
+                    var original = console[level];
+                    console[level] = function() {
+                        var args = Array.prototype.slice.call(arguments);
+                        // Remove %c and its style argument
+                        if (typeof args[0] === 'string' && args[0].includes('%c')) {
+                            args[0] = args[0].replace(/%c/g, '').trim();
+                            args.splice(1, 1); // Remove the style string
+                        }
+                        // Pretty-print objects/arrays, join with newlines for readability
+                        var message = args.map(function(arg) {
+                            if (typeof arg === 'object' && arg !== null) {
+                                try { return JSON.stringify(arg, null, 2); } catch (e) { return '[Object]'; }
+                            }
+                            return String(arg);
+                        }).join(' - ');
+                        window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge.postMessage({
+                            type: 'console',
+                            level: level,
+                            message: message
+                        });
+                        if (original) original.apply(console, arguments);
+                    };
                 });
-                if (original) original.apply(console, arguments);
-                };
-            });
             })();
 
             window.googletag = window.googletag || {};
@@ -364,11 +404,11 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         let adUnitIdScript = WKUserScript(source: adUnitIdJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(adUnitIdScript)
         debugPrint("[SN] [NATIVE] Injected adUnitId to JS (window.stepnetwork.adUnitId): \(self.adUnitId)")
-        //MARK: END JavaScript injections
 
-        // Add random query param to avoid caching
+        // Generate random value from UUID
         let randomValue = UUID().uuidString
         var urlString = baseURL
+        
         // Append &aym_debug=true if debugging is enabled
         if debugSettings.isDebugEnabled {
             if urlString.contains("?") {
@@ -377,13 +417,16 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
                 urlString += "?aym_debug=true"
             }
         }
+        // Append random value to avoid caching
         if urlString.contains("?") {
             urlString += "&rnd=\(randomValue)"
         } else {
             urlString += "?rnd=\(randomValue)"
         }
 
+        // Create the URL from the added Query parameters
         guard let url = URL(string: urlString) else { return }
+
         initialURL = url  // Track the initial URL for domain comparison
         let request = URLRequest(url: url)
         webView.navigationDelegate = self // Ensure delegate is set

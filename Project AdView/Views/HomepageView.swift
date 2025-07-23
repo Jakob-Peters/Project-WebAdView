@@ -8,12 +8,13 @@ struct HomepageView: View {
     @State private var homepageWebAdKey = UUID()
     var body: some View {
         NavigationView {
-            VStack(spacing: 32) {
+            VStack(alignment: .center, spacing: 32) {
                 // Ad unit WebView
-                WebAdView(adUnitId: "div-gpt-ad-mobile_1")
+                WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320) // Fixed height for the ad
                     .showAdLabel(true)
                     .id(homepageWebAdKey)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .frame(height: 320) // Fixed height for the frame
                     .padding(.top, 50)
 
                 Text("Articles")
@@ -88,7 +89,7 @@ struct Article1View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true, text: "Custom annonce text", font: .caption.bold())
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.bottom, 8)
                 // Filler text blocks
                 Text("Filler text for Article 1. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
@@ -115,7 +116,7 @@ struct Article2View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.vertical, 8)
                 // Filler text before ad
                 Text("""
@@ -128,7 +129,7 @@ struct Article2View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.vertical, 8)
                 // More filler text
                 Text("""
@@ -156,7 +157,7 @@ struct Article3View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_1")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.vertical, 8)
                 // Filler text before first ad
                 Text("""
@@ -169,7 +170,7 @@ struct Article3View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_2")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.vertical, 8)
                 // More filler text
                 Text("""
@@ -182,7 +183,7 @@ struct Article3View: View {
                 WebAdView(adUnitId: "div-gpt-ad-mobile_3")
                     .showAdLabel(true)
                     .id(UUID())
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.vertical, 8)
                 // Final filler text
                 Text("""
