@@ -229,6 +229,9 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         webView = WKWebView(frame: view.bounds, configuration: config)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
+        // Disable scrolling in the webview so the ad is never scrollable inside the webview
+        webView.scrollView.isScrollEnabled = false
+
         // Set delegates for click handling
         webView.uiDelegate = self
         webView.navigationDelegate = self

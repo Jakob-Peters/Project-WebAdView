@@ -8,56 +8,62 @@ struct HomepageView: View {
     @State private var homepageWebAdKey = UUID()
     var body: some View {
         NavigationView {
-            VStack(alignment: .center, spacing: 32) {
-                // Ad unit WebView
-                WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320) // Fixed height for the ad
-                    .showAdLabel(true)
-                    .id(homepageWebAdKey)
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .frame(height: 320) // Fixed height for the frame
-                    .padding(.top, 50)
+            ScrollView {
+                VStack(alignment: .center, spacing: 32) {
+                    WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320)
+                        .showAdLabel(true)
+                        .id(homepageWebAdKey)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                    Text("Articles")
+                        .font(.title2)
+                        .bold()
 
-                Text("Articles")
-                    .font(.title2)
-                    .bold()
+                    VStack(spacing: 16) {
+                        NavigationLink(destination: Article1View()) {
+                            Text("Article 1")
+                                .frame(maxWidth: .infinity)
+                                .frame(width: 320, height: 320, alignment: .center)
+                                .padding()
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        NavigationLink(destination: Article2View()) {
+                            Text("Article 2")
+                                .frame(maxWidth: .infinity)
+                                .frame(width: 320, height: 320, alignment: .center)
+                                .padding()
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        WebAdView(adUnitId: "div-gpt-ad-mobile_2")
+                            .showAdLabel(true)
+                            .id(UUID())
+                            .frame(maxWidth: .infinity, alignment: .top)
+                            .padding(.vertical, 8)
 
-                VStack(spacing: 16) {
-                    NavigationLink(destination: Article1View()) {
-                        Text("Article 1")
+                        NavigationLink(destination: Article3View()) {
+                            Text("Article 3")
+                                .frame(maxWidth: .infinity)
+                                .frame(width: 320, height: 320, alignment: .center)
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                    }
+                    Button(action: {
+                        Didomi.shared.showPreferences()
+                    }) {
+                        Text("Change Consent Preferences")
+                            .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
+                            .background(Color.secondary.opacity(0.1))
                             .cornerRadius(8)
                     }
-                    NavigationLink(destination: Article2View()) {
-                        Text("Article 2")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                    NavigationLink(destination: Article3View()) {
-                        Text("Article 3")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(8)
-                    }
+                    .padding(.bottom, 4)
                 }
-                Spacer()
-                Button(action: {
-                    Didomi.shared.showPreferences()
-                }) {
-                    Text("Change Consent Preferences")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .padding(.bottom, 4)
+                .padding()
             }
-            .padding()
             .navigationTitle("Demo Homepage")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
