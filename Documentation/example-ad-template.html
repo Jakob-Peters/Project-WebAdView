@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title>example-ad-template</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <!-- Didomi tag for web - Generic tag -->
     <!--
     <script type="text/javascript">(function () { (function (e) { var r = document.createElement("link"); r.rel = "preconnect"; r.as = "script"; var t = document.createElement("link"); t.rel = "dns-prefetch"; t.as = "script"; var n = document.createElement("script"); n.id = "spcloader"; n.type = "text/javascript"; n["async"] = true; n.charset = "utf-8"; var o = "https://sdk.privacy-center.org/" + e + "/loader.js?target=" + document.location.hostname; if (window.didomiConfig && window.didomiConfig.user) { var i = window.didomiConfig.user; var a = i.country; var c = i.region; if (a) { o = o + "&country=" + a; if (c) { o = o + "&region=" + c } } } r.href = "https://sdk.privacy-center.org/"; t.href = "https://sdk.privacy-center.org/"; n.src = o; var d = document.getElementsByTagName("script")[0]; d.parentNode.insertBefore(r, d); d.parentNode.insertBefore(t, d); d.parentNode.insertBefore(n, d) })("d0661bea-d696-4069-b308-11057215c4c4") })();</script>
@@ -26,23 +25,6 @@
     <!-- Yield Manager Tag -->
     <script src="https://AFtbN2xnQGXShTYuo.ay.delivery/manager/AFtbN2xnQGXShTYuo" type="text/javascript"
         referrerpolicy="no-referrer-when-downgrade"></script>
-
-    <!-- Key-value targeting for placeholder ads -->
-    <script>
-      window.googletag = window.googletag || {};
-      googletag.cmd = googletag.cmd || [];
-    
-      googletag.cmd.push(function () {
-        // Set page-level targeting
-        googletag.pubads().setTargeting('yb_target', 'alwayson-standard');
-      });
-    </script>
-    
-    <!-- Communication to Xcode logs example -->
-    <script>
-        window.webkit.messageHandlers.nativeBridge.postMessage("This log is from HTML page.");
-    </script>
-    
     
     <!-- Basic styling for displaying ad correctly -->
     <style>
@@ -62,21 +44,62 @@
             align-items: center;
             justify-content: center;
         }
+        
+        /* Debug styles - Panel injected by WebAdView SDK*/
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 9999;
+            
+        }
     </style>
+    
 </head>
 
 <body>
+    
     <div class="ad-container"
         style="width:100vw; height:100vh; min-height:100vh; min-width:100vw; padding:0; margin:0; display:flex; align-items:center; justify-content:center;">
-        <!-- Ad unit tag for Yield Manager - Template div-gpt-ad-mobile_1 -->
-        <div data-ay-manager-id="div-gpt-ad-mobile_1">
-            <script type="text/javascript">
-                window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
-                window.ayManagerEnv.cmd.push(function () {
-                    ayManagerEnv.display("div-gpt-ad-mobile_1");
-                });
-            </script>
-        </div>
+        
+        <script>
+            function waitForAdUnitId(callback, maxTries = 500, tries = 0) {
+              if (window.stepnetwork && window.stepnetwork.adUnitId) {
+                callback(window.stepnetwork.adUnitId);
+              } else if (tries < maxTries) {
+                setTimeout(() => waitForAdUnitId(callback, maxTries, tries + 1), 10);
+              } else {
+                console.error('adUnitId was not set in time');
+              }
+            }
+              
+          waitForAdUnitId(function(adUnitId) {
+            // 1. Create the ad div
+            var adDiv = document.createElement('div');
+            adDiv.setAttribute('data-ay-manager-id', adUnitId);
+            adDiv.id = adUnitId;
+            // Use querySelector for class
+            var container = document.querySelector('.ad-container');
+            if (container) {
+              container.appendChild(adDiv);
+            } else {
+              console.error('Ad container not found');
+            }
+        
+            // 2. Call Yield Manager to display the ad
+            window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
+            window.ayManagerEnv.cmd.push(function () {
+              ayManagerEnv.display(adUnitId);
+            });
+          });
+        </script>
     </div>
 </body>
 
