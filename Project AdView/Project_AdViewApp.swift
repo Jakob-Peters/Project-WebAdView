@@ -19,6 +19,13 @@ private func debugPrint(_ items: Any..., separator: String = " ", terminator: St
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Enable debug mode for development
+        #if DEBUG
+        UserDefaults.standard.set(true, forKey: "isDebugEnabled")
+        #endif
+        
+        debugPrint("[SN] [NATIVE] App is launching - Debug mode enabled!")
+        
         let parameters = DidomiInitializeParameters(
             apiKey: "d0661bea-d696-4069-b308-11057215c4c4",
             disableDidomiRemoteConfig: false
@@ -27,6 +34,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         Didomi.shared.onReady {
             debugPrint("[SN] [NATIVE] Didomi SDK is ready")
+            debugPrint("[SN] [NATIVE] DEBUG: Debug logging is working!")
             
             // Set up global consent change listener
             let didomiEventListener = EventListener()

@@ -2,6 +2,8 @@ import Didomi
 import SwiftUI
 import WebKit
 
+import Combine // NEW: Import Combine
+
 // MARK: - Debug Helper
 private func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     // Get the debug settings from the environment or use a default
@@ -10,6 +12,49 @@ private func debugPrint(_ items: Any..., separator: String = " ", terminator: St
     let isDebugEnabled = UserDefaults.standard.bool(forKey: "isDebugEnabled")
     if isDebugEnabled {
         print(items, separator: separator, terminator: terminator)
+    }
+}
+
+// MARK: - AdLoadState (Moved here)
+enum AdLoadState: String, CaseIterable, Equatable, Identifiable {
+    var id: String { self.rawValue }
+    case notLoaded
+    case fetched
+    case displayed
+    case unloaded
+}
+
+// NEW: Define environment key for the LazyLoadingManager
+struct AdVisibilityManagerKey: EnvironmentKey {
+    static let defaultValue: LazyLoadingManager? = nil // LazyLoadingManager will be defined in a separate file
+}
+
+extension EnvironmentValues {
+    var adVisibilityManager: LazyLoadingManager? {
+        get { self[AdVisibilityManagerKey.self] }
+        set { self[AdVisibilityManagerKey.self] = newValue }
+    }
+}
+
+// NEW: Helper for Publishers (needed for .onReceive with optional manager)
+extension Publisher {
+    static func empty() -> AnyPublisher<Output, Failure> {
+        Empty().eraseToAnyPublisher()
+    }
+}
+
+// MARK: - Preference Keys for Geometry Tracking (Moved here from previous LazyLoadAdModifier.swift)
+struct AdFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { (_, new) in new }
+    }
+}
+
+struct ScrollViewBoundsPreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
     }
 }
 
@@ -36,27 +81,32 @@ struct WebAdView: View {
     var minHeight: CGFloat?
     var maxHeight: CGFloat?
 
-    //MARK: WebAdView config
+    // NEW: Environment variable for lazy loading manager
+    @Environment(\.adVisibilityManager) var adVisibilityManager
+    // NEW: Internal state for ad loading, managed by the AdVisibilityManager
+    @State private var loadState: AdLoadState = .notLoaded
+    // NEW: Internal WKWebView instance to manage lifecycle
+    @State private var webViewInstance: WKWebView?
+
     /// Initializes a new instance of the WebAdView with the specified configuration.
-    ///
     /// - Parameters:
-    ///   - adUnitId: The unique identifier for the ad unit to be displayed.
-    ///   - showAdLabel: A Boolean value indicating whether to show the ad label. Defaults to `false`.
-    ///   - adLabelText: The text to display in the ad label. Defaults to `"annonce"`.
-    ///   - adLabelFont: The font to use for the ad label text. Defaults to `.system(size: 10, weight: .bold)`.
-    ///   - initialWidth: The initial width of the ad view. Defaults to `320`.
-    ///   - initialHeight: The initial height of the ad view. Defaults to `320`.
-    ///   - minWidth: The minimum width of the ad view. Optional.
-    ///   - maxWidth: The maximum width of the ad view. Optional.
-    ///   - minHeight: The minimum height of the ad view. Optional.
-    ///   - maxHeight: The maximum height of the ad view. Optional.
+    ///   - adUnitId: The unique identifier for the ad unit.
+    ///   - showAdLabel: A boolean indicating whether to show an ad label. Defaults to `false`.
+    ///   - adLabelText: The text for the ad label. Defaults to "annonce".
+    ///   - adLabelFont: The font for the ad label. Defaults to `.system(size: 10, weight: .bold)`.
+    ///   - initialWidth: The initial width of the ad view.
+    ///   - initialHeight: The initial height of the ad view.
+    ///   - minWidth: The minimum width constraint for the ad view.
+    ///   - maxWidth: The maximum width constraint for the ad view.
+    ///   - minHeight: The minimum height constraint for the ad view.
+    ///   - maxHeight: The maximum height constraint for the ad view.
     init(
         adUnitId: String,
         showAdLabel: Bool = false,
         adLabelText: String = "annonce",
         adLabelFont: Font = .system(size: 10, weight: .bold),
-        initialWidth: CGFloat = 320,  
-        initialHeight: CGFloat = 320, 
+        initialWidth: CGFloat = 320,
+        initialHeight: CGFloat = 320,
         minWidth: CGFloat? = nil,
         maxWidth: CGFloat? = nil,
         minHeight: CGFloat? = nil,
@@ -94,20 +144,63 @@ struct WebAdView: View {
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 5)
             }
-            WebViewRepresentable(adUnitId: adUnitId, baseURL: baseURL, onAdSizeChange: { size in
-                // Clamp size to min/max constraints if provided
-                let clampedWidth = min(max(size.width, minWidth ?? size.width), maxWidth ?? size.width)
-                let clampedHeight = min(max(size.height, minHeight ?? size.height), maxHeight ?? size.height)
-                //Animation duration for size changes on native view
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    self.adSize = CGSize(width: clampedWidth, height: clampedHeight)
-                }
-            })
-            .environmentObject(debugSettings)
-            .frame(
-                width: adSize.width,
-                height: adSize.height
-            )
+            // Only render WebViewRepresentable if loadState indicates it should exist
+            if loadState != .notLoaded && loadState != .unloaded {
+                WebViewRepresentable(
+                    adUnitId: adUnitId,
+                    baseURL: baseURL,
+                    onAdSizeChange: { size in
+                        let clampedWidth = min(max(size.width, minWidth ?? size.width), maxWidth ?? size.width)
+                        let clampedHeight = min(max(size.height, minHeight ?? size.height), maxHeight ?? size.height)
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.adSize = CGSize(width: clampedWidth, height: clampedHeight)
+                        }
+                    }
+                )
+                .environmentObject(debugSettings)
+                .frame(
+                    width: adSize.width,
+                    height: adSize.height
+                )
+            } else {
+                // Placeholder when not loaded or unloaded
+                Color.clear
+                    .frame(width: initialWidth, height: initialHeight)
+            }
+        }
+        .id(adUnitId) // Use adUnitId as stable ID for individual ad units
+        // Observe adUnitId's state from the manager via onReceive
+        .onReceive(adVisibilityManager?.adStatesPublisher(for: adUnitId) ?? .empty()) { newState in
+            debugPrint("[SN] [LLM] WebAdView \(adUnitId): Received new state from manager: \(newState.rawValue)")
+            self.loadState = newState // Update internal state based on manager
+        }
+        // React to changes in the internal loadState to trigger webView actions
+        .onChange(of: loadState) { _, newValue in handleLoadStateChange(newValue) }
+        .background(
+            // Report own frame up to the manager using a GeometryReader and PreferenceKey
+            GeometryReader { geometry in
+                Color.clear.preference(
+                    key: AdFramePreferenceKey.self,
+                    value: [adUnitId: geometry.frame(in: .global)]
+                )
+            }
+        )
+    }
+
+    // Helper to create WKWebView instance (not yet used)
+    private func createWebViewInstance() -> WKWebView {
+        _ = WebAdViewController(baseURL: baseURL, adUnitId: adUnitId, debugSettings: debugSettings)
+        return self.webViewInstance!
+    }
+
+    // Handle state transitions for ad loading
+    private func handleLoadStateChange(_ newState: AdLoadState) {
+        debugPrint("[SN] [LLM] WebAdView \(adUnitId): Handling state change to \(newState.rawValue)")
+        
+        // Trigger ad rendering when state becomes .displayed
+        if newState == .displayed {
+            // Note: This will be called on each WebAdView when it becomes displayed
+            // The actual rendering trigger will happen in the WebAdViewController
         }
     }
 }
@@ -118,12 +211,19 @@ private struct WebViewRepresentable: UIViewControllerRepresentable {
     let baseURL: String
     var onAdSizeChange: ((CGSize) -> Void)?
     @EnvironmentObject var debugSettings: DebugSettings
+    @Environment(\.adVisibilityManager) private var adVisibilityManager
 
     func makeUIViewController(context: Context) -> WebAdViewController {
         let controller = WebAdViewController(baseURL: baseURL, adUnitId: adUnitId, debugSettings: debugSettings)
         controller.onAdSizeChange = onAdSizeChange
         let id = ObjectIdentifier(controller).hashValue
-        debugPrint("[SN] [NATIVE] WebAdView.makeUIViewController: Created controller [\(id)] with adUnitId: \(adUnitId)")
+        debugPrint("[SN] [LLM] WebAdView.makeUIViewController: Created controller [\(id)] with adUnitId: \(adUnitId)")
+        
+        // Set up lazy loading state observation
+        if let manager = adVisibilityManager {
+            controller.setupLazyLoadingObserver(manager: manager)
+        }
+        
         return controller
     }
 
@@ -133,8 +233,81 @@ private struct WebViewRepresentable: UIViewControllerRepresentable {
 
     static func dismantleUIViewController(_ uiViewController: WebAdViewController, coordinator: ()) {
         let id = ObjectIdentifier(uiViewController).hashValue
-        debugPrint("[SN] [NATIVE] WebAdView.dismantleUIViewController: Dismantling controller [\(id)]")
+        debugPrint("[SN] [LLM] WebAdView.dismantleUIViewController: Dismantling controller [\(id)]")
         uiViewController.unloadWebView()
+    }
+}
+
+// Move extension View and LazyLoadAdInternalModifier to file scope
+extension View {
+    /// Applies lazy loading behavior to a ScrollView's content with default thresholds.
+    /// - Parameter enabled: Whether to enable lazy loading behavior. When true, uses default thresholds.
+
+    func lazyLoadAd(_ enabled: Bool = true) -> some View {
+        Group {
+            if enabled {
+                self.modifier(LazyLoadAdInternalModifier(fetchThreshold: 800, displayThreshold: 200, unloadThreshold: 1600))
+            } else {
+                self
+            }
+        }
+    }
+    
+    /// Applies lazy loading behavior to a ScrollView's content, managing the lifecycle of contained WebAdViews.
+    /// - Parameters:
+    ///   - fetchThreshold: Distance from the screen edge (in points) when an ad should start fetching content.
+    ///   - displayThreshold: Distance from the screen edge (in points) when an ad should fully display.
+    ///   - unloadThreshold: Distance from the screen edge (in points) when an ad should unload (deallocate) to save resources.
+    func lazyLoadAd(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat) -> some View {
+        self.modifier(LazyLoadAdInternalModifier(fetchThreshold: fetchThreshold, displayThreshold: displayThreshold, unloadThreshold: unloadThreshold))
+    }
+}
+
+private struct LazyLoadAdInternalModifier: ViewModifier {
+    @StateObject private var manager: LazyLoadingManager // Manager instance for this ScrollView
+
+    let fetchThreshold: CGFloat
+    let displayThreshold: CGFloat
+    let unloadThreshold: CGFloat
+
+    init(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat) {
+        self.fetchThreshold = fetchThreshold
+        self.displayThreshold = displayThreshold
+        self.unloadThreshold = unloadThreshold
+        _manager = StateObject(wrappedValue: LazyLoadingManager())
+    }
+
+    func body(content: Content) -> some View {
+        content
+            // Capture ScrollView bounds using a GeometryReader as an overlay
+            .overlay(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: ScrollViewBoundsPreferenceKey.self,
+                        value: proxy.frame(in: .global)
+                    )
+                }
+            )
+            // Observe preferences and update manager
+            .onPreferenceChange(ScrollViewBoundsPreferenceKey.self) { bounds in
+                manager.updateScrollViewBounds(bounds)
+            }
+            .onPreferenceChange(AdFramePreferenceKey.self) { frames in
+                // Iterate through reported frames and update manager
+                for (adId, frame) in frames {
+                    manager.updateAdFrame(adId, frame: frame)
+                }
+            }
+            // Inject the manager into the environment for WebAdViews
+            .environment(\.adVisibilityManager, manager)
+            .onAppear { 
+                manager.fetchThreshold = fetchThreshold
+                manager.displayThreshold = displayThreshold
+                manager.unloadThreshold = unloadThreshold
+                // Force initial check in case ads are immediately visible
+                manager.updateScrollViewBounds(manager.scrollViewBounds)
+                manager.adUnitFrames.forEach { manager.updateAdFrame($0.key, frame: $0.value) }
+            }
     }
 }
 
@@ -149,6 +322,9 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
     var webView: WKWebView!
     private var hasLoadedContent = false
     private var initialURL: URL?
+    
+    // NEW: Lazy loading state observation
+    private var lazyLoadingCancellable: AnyCancellable?
 
     init(baseURL: String, adUnitId: String, debugSettings: DebugSettings) {
         self.baseURL = baseURL
@@ -165,6 +341,22 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         super.viewDidLoad()
         setupWebView()
         checkConsentAndLoad()
+    }
+    
+    // MARK: Setup Lazy Loading Observer
+    func setupLazyLoadingObserver(manager: LazyLoadingManager) {
+        lazyLoadingCancellable = manager.adStatesPublisher(for: adUnitId)
+            .sink { [weak self] newState in
+                guard let self = self else { return }
+                debugPrint("[SN] [LLM] WebAdViewController[\(ObjectIdentifier(self).hashValue)]: Received state change to \(newState.rawValue) for \(self.adUnitId)")
+                
+                // Trigger ad rendering when state becomes .displayed
+                if newState == .displayed && self.hasLoadedContent {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.triggerAdRendering()
+                    }
+                }
+            }
     }
 
     //MARK: Consent holdback
@@ -202,9 +394,11 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
 
     deinit {
         let id = ObjectIdentifier(self).hashValue
-        debugPrint("[SN] [NATIVE] WebAdViewController[\(id)]: deinit called")
+        debugPrint("[SN] [LLM] WebAdViewController[\(id)]: deinit called")
         // Remove notification observer
         NotificationCenter.default.removeObserver(self)
+        // Cancel lazy loading subscription
+        lazyLoadingCancellable?.cancel()
     }
     //MARK: Unload WebView
     func unloadWebView() {
@@ -212,7 +406,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         webView?.removeFromSuperview()
         webView = nil
         let id = ObjectIdentifier(self).hashValue
-        debugPrint("[SN] [NATIVE] WebAdViewController[\(id)]: Unloaded WebView")
+        debugPrint("[SN] [LLM] WebAdViewController[\(id)]: Unloaded WebView")
     }
     //MARK: Setup WebView
     private func setupWebView() {
@@ -267,6 +461,32 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
                 debugPrint("[SN] [WebAdView] [NATIVE] Error:", error)
             } else {
                 debugPrint("[SN] [WebAdView] [NATIVE] JS Result:", result ?? "nil")
+            }
+        }
+    }
+
+    // MARK: Trigger Ad Rendering with LL
+    func triggerAdRendering() {
+        guard let webView = webView else {
+            debugPrint("[SN] [LLM] WebAdViewController[\(ObjectIdentifier(self).hashValue)]: Cannot trigger ad rendering - WebView is nil")
+            return
+        }
+        
+        let triggerAdJS = """
+        if (window.ayManager && typeof ayManager.dispatchManualEvent === 'function') {
+            ayManager.dispatchManualEvent();
+            console.log('[LLM] Triggered manual ad render event for unit: \(adUnitId)');
+        } else {
+            console.log('[LLM] ayManager.dispatchManualEvent not available for unit: \(adUnitId)');
+        }
+        """
+        
+        debugPrint("[SN] [LLM] WebAdViewController[\(ObjectIdentifier(self).hashValue)]: Triggering ad rendering for \(adUnitId)")
+        webView.evaluateJavaScript(triggerAdJS) { result, error in
+            if let error = error {
+                debugPrint("[SN] [LLM] WebAdViewController: Error triggering ad rendering:", error)
+            } else {
+                debugPrint("[SN] [LLM] WebAdViewController: Successfully triggered ad rendering for \(self.adUnitId)")
             }
         }
     }

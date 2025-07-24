@@ -70,16 +70,16 @@
   - [X] Handle size change animations and layout updates
 
 ### Module 5: Native View Lazy Loading (Two Tier)
-- [ ] **5a. Distance-Based WebView Fetching**
-  - [ ] Implement scroll position monitoring in native view
-  - [ ] Calculate distance of ad units from viewport
-  - [ ] Create/load WebViews based on configurable distance thresholds
-  - [ ] Manage WebView lifecycle states (not created, fetched, rendered)
-- [ ] **5b. JS Fetch Event System**
-  - [ ] Send JS fetch event to WebView when at fetch distance (e.g., 200px)
-  - [ ] ayManager will automatically fetch on `onConsentInitialization`, which happens when we have a consent signal
+- [X] **5a. Distance-Based WebView Fetching**
+  - [X] Implement scroll position monitoring in native view
+  - [X] Calculate distance of ad units from viewport
+  - [X] Create/load WebViews based on configurable distance thresholds
+  - [X] Manage WebView lifecycle states (not created, fetched, rendered)
+- [X] **5b. JS Fetch Event System**
+  - [X] Send JS fetch event to WebView when at fetch distance (e.g., 200px)
+  - [X] ayManager will automatically fetch on `onConsentInitialization`, which happens when we have a consent signal
 - [ ] **5c. JS Display Event System**
-  - [ ] Send JS display event when at render distance (e.g., 100px)
+  - [X] Send JS display event when at render distance (e.g., 100px) (still missing AY enitiy setup for manual dispatch)
   - [ ] Trigger `ayManager.dispatchManualEvent()` for actual ad rendering (using manual event, setup within Yield Manager)
 
 ### Module 6: Debugging Infrastructure
