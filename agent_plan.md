@@ -77,12 +77,10 @@
   - [ ] Manage WebView lifecycle states (not created, fetched, rendered)
 - [ ] **5b. JS Fetch Event System**
   - [ ] Send JS fetch event to WebView when at fetch distance (e.g., 200px)
-  - [ ] Trigger `ayManager.fetch()` without displaying ads
-  - [ ] Handle fetch completion callbacks
-  - [ ] Implement fetch state tracking
+  - [ ] ayManager will automatically fetch on `onConsentInitialization`, which happens when we have a consent signal
 - [ ] **5c. JS Display Event System**
   - [ ] Send JS display event when at render distance (e.g., 100px)
-  - [ ] Trigger `ayManager.display()` for actual ad rendering
+  - [ ] Trigger `ayManager.dispatchManualEvent()` for actual ad rendering (using manual event, setup within Yield Manager)
 
 ### Module 6: Debugging Infrastructure
 - [X] **6a. Debug Mode Toggle**
