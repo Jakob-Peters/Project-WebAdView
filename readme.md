@@ -3,6 +3,10 @@
 ## Overview
 Project AdView is a SwiftUI-based demo app that showcases how to display ad content in a privacy-compliant way using the Didomi consent management SDK. Ad units are rendered in `WKWebView` components and will only load after the user has given consent, ensuring that no consent notices appear inside the ad views themselves.
 
+## Still in Development
+- **Accurate Viewability Measurement in WebAdView:**  
+    Currently, the DOM within the WebAdView can only reference the ad's own view. This results in viewability tracking always reporting 100% viewable, regardless of the WebAdView's actual visibility on the device screen. Improving this to reflect true on-screen viewability is an ongoing task.
+
 ## Key Features
 - **Consent-Gated Ad Loading:** WebAdViews are only loaded after Didomi consent is given.
 - **Advanced Lazy Loading System:** Sophisticated lazy loading manages ad lifecycle based on scroll position, with configurable fetch/display/unload thresholds, throttled updates, and optional bi-directional unloading for optimal performance.
