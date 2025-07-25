@@ -13,8 +13,11 @@ struct HomepageView: View {
                 VStack(spacing: 0) {
                     // Header Banner Ad
                     WebAdView(adUnitId: "div-gpt-ad-mobile_1", initialHeight: 320, minHeight: 320, maxHeight: 320)
+                        .customTargeting("section", "homepage")
+                        .customTargeting("tags", ["breaking", "featured", "local"])
                         .showAdLabel(true, text: "annonce")
                         .id(homepageWebAdKey)
+                        .id(UUID())
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 12)

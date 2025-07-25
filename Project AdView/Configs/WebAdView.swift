@@ -70,6 +70,9 @@ struct WebAdView: View {
     var adLabelText: String = "annonce"
     var adLabelFont: Font = .system(size: 10, weight: .bold)
 
+    //MARK: Custom targeting properties
+    private var customTargetingParams: [String: [String]] = [:]
+
     // Dynamic ad size state
     @State private var adSize: CGSize
 
@@ -134,6 +137,31 @@ struct WebAdView: View {
         return copy
     }
 
+    // MARK: - Custom Targeting Modifiers
+    /// Sets a single custom targeting parameter for Google Ad Manager
+    /// - Parameters:
+    ///   - key: The targeting key
+    ///   - value: The targeting value (single string)
+    func customTargeting(_ key: String, _ value: String) -> WebAdView {
+        var copy = self
+        copy.customTargetingParams[key] = [value]
+        return copy
+    }
+
+    /// Sets a custom targeting parameter with multiple values for Google Ad Manager
+    /// - Parameters:
+    ///   - key: The targeting key
+    ///   - values: The targeting values (array of strings)
+    func customTargeting(_ key: String, _ values: [String]) -> WebAdView {
+        var copy = self
+        if values.isEmpty {
+            debugPrint("[SN] [NATIVE] Custom Targeting: Empty array provided for key '\(key)'")
+            return copy
+        }
+        copy.customTargetingParams[key] = values
+        return copy
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if showAdLabel {
@@ -149,6 +177,7 @@ struct WebAdView: View {
                 WebViewRepresentable(
                     adUnitId: adUnitId,
                     baseURL: baseURL,
+                    customTargetingParams: customTargetingParams,
                     onAdSizeChange: { size in
                         let clampedWidth = min(max(size.width, minWidth ?? size.width), maxWidth ?? size.width)
                         let clampedHeight = min(max(size.height, minHeight ?? size.height), maxHeight ?? size.height)
@@ -209,12 +238,18 @@ struct WebAdView: View {
 private struct WebViewRepresentable: UIViewControllerRepresentable {
     let adUnitId: String
     let baseURL: String
+    let customTargetingParams: [String: [String]]
     var onAdSizeChange: ((CGSize) -> Void)?
     @EnvironmentObject var debugSettings: DebugSettings
     @Environment(\.adVisibilityManager) private var adVisibilityManager
 
     func makeUIViewController(context: Context) -> WebAdViewController {
-        let controller = WebAdViewController(baseURL: baseURL, adUnitId: adUnitId, debugSettings: debugSettings)
+        let controller = WebAdViewController(
+            baseURL: baseURL, 
+            adUnitId: adUnitId, 
+            debugSettings: debugSettings,
+            customTargetingParams: customTargetingParams
+        )
         controller.onAdSizeChange = onAdSizeChange
         let id = ObjectIdentifier(controller).hashValue
         debugPrint("[SN] [LLM] WebAdView.makeUIViewController: Created controller [\(id)] with adUnitId: \(adUnitId)")
@@ -241,12 +276,13 @@ private struct WebViewRepresentable: UIViewControllerRepresentable {
 // Move extension View and LazyLoadAdInternalModifier to file scope
 extension View {
     /// Applies lazy loading behavior to a ScrollView's content with default thresholds.
-    /// - Parameter enabled: Whether to enable lazy loading behavior. When true, uses default thresholds.
-
-    func lazyLoadAd(_ enabled: Bool = true) -> some View {
+    /// - Parameters:
+    ///   - enabled: Whether to enable lazy loading behavior. When true, uses default thresholds.
+    ///   - unloadingEnabled: Whether ads should be unloaded when out of view. Defaults to false for better UX.
+    func lazyLoadAd(_ enabled: Bool = true, unloadingEnabled: Bool = false) -> some View {
         Group {
             if enabled {
-                self.modifier(LazyLoadAdInternalModifier(fetchThreshold: 800, displayThreshold: 200, unloadThreshold: 1600))
+                self.modifier(LazyLoadAdInternalModifier(fetchThreshold: 800, displayThreshold: 200, unloadThreshold: 1600, unloadingEnabled: unloadingEnabled))
             } else {
                 self
             }
@@ -258,8 +294,9 @@ extension View {
     ///   - fetchThreshold: Distance from the screen edge (in points) when an ad should start fetching content.
     ///   - displayThreshold: Distance from the screen edge (in points) when an ad should fully display.
     ///   - unloadThreshold: Distance from the screen edge (in points) when an ad should unload (deallocate) to save resources.
-    func lazyLoadAd(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat) -> some View {
-        self.modifier(LazyLoadAdInternalModifier(fetchThreshold: fetchThreshold, displayThreshold: displayThreshold, unloadThreshold: unloadThreshold))
+    ///   - unloadingEnabled: Whether ads should be unloaded when out of view. Defaults to false for better UX.
+    func lazyLoadAd(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat, unloadingEnabled: Bool = false) -> some View {
+        self.modifier(LazyLoadAdInternalModifier(fetchThreshold: fetchThreshold, displayThreshold: displayThreshold, unloadThreshold: unloadThreshold, unloadingEnabled: unloadingEnabled))
     }
 }
 
@@ -269,11 +306,13 @@ private struct LazyLoadAdInternalModifier: ViewModifier {
     let fetchThreshold: CGFloat
     let displayThreshold: CGFloat
     let unloadThreshold: CGFloat
+    let unloadingEnabled: Bool
 
-    init(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat) {
+    init(fetchThreshold: CGFloat, displayThreshold: CGFloat, unloadThreshold: CGFloat, unloadingEnabled: Bool = false) {
         self.fetchThreshold = fetchThreshold
         self.displayThreshold = displayThreshold
         self.unloadThreshold = unloadThreshold
+        self.unloadingEnabled = unloadingEnabled
         _manager = StateObject(wrappedValue: LazyLoadingManager())
     }
 
@@ -304,6 +343,7 @@ private struct LazyLoadAdInternalModifier: ViewModifier {
                 manager.fetchThreshold = fetchThreshold
                 manager.displayThreshold = displayThreshold
                 manager.unloadThreshold = unloadThreshold
+                manager.unloadingEnabled = unloadingEnabled
                 // Force initial check in case ads are immediately visible
                 manager.updateScrollViewBounds(manager.scrollViewBounds)
                 manager.adUnitFrames.forEach { manager.updateAdFrame($0.key, frame: $0.value) }
@@ -319,6 +359,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
     private let baseURL: String
     private let adUnitId: String
     private var debugSettings: DebugSettings
+    private let customTargetingParams: [String: [String]]
     var webView: WKWebView!
     private var hasLoadedContent = false
     private var initialURL: URL?
@@ -326,10 +367,11 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
     // NEW: Lazy loading state observation
     private var lazyLoadingCancellable: AnyCancellable?
 
-    init(baseURL: String, adUnitId: String, debugSettings: DebugSettings) {
+    init(baseURL: String, adUnitId: String, debugSettings: DebugSettings, customTargetingParams: [String: [String]] = [:]) {
         self.baseURL = baseURL
         self.adUnitId = adUnitId
         self.debugSettings = debugSettings
+        self.customTargetingParams = customTargetingParams
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -491,18 +533,40 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         }
     }
 
+    // MARK: Generate Custom Targeting JavaScript
+    private func generateCustomTargetingJS() -> String {
+        guard !customTargetingParams.isEmpty else { return "" }
+        
+        let targetingCalls = customTargetingParams.map { key, values in
+            if values.count == 1 {
+                // Single value: googletag.pubads().setTargeting('key', 'value');
+                return "googletag.pubads().setTargeting('\(key)', '\(values[0])');"
+            } else {
+                // Array values: googletag.pubads().setTargeting('key', ['value1', 'value2']);  
+                let arrayString = values.map { "'\($0)'" }.joined(separator: ", ")
+                return "googletag.pubads().setTargeting('\(key)', [\(arrayString)]);"
+            }
+        }.joined(separator: "\n                ")
+        
+        return """
+        googletag.cmd.push(function () {
+            \(targetingCalls)
+        });
+        """
+    }
+
     //MARK: Load ad content
     func loadAdContent() {
         guard !hasLoadedContent else { return }
         guard let webView = webView else { return }
         hasLoadedContent = true
 
-        //MARK: Inject Didomi consent
+        // 1. Didomi consent (always)
         let didomiJavaScriptCode = Didomi.shared.getJavaScriptForWebView()
         let userScript = WKUserScript(source: didomiJavaScriptCode, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         webView.configuration.userContentController.addUserScript(userScript)
 
-        //MARK: Debugging script
+        // 2. Debug panel (debug only)
         let debuggingPanel = """
             (function() {
                 // Create debug info panel
@@ -619,7 +683,7 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
             webView.configuration.userContentController.addUserScript(debuggingPanelScript)
         }
 
-        //MARK: AdunitId injection
+        // 3. AdUnit ID injection (always)
         let adUnitIdJS = """
         window.stepnetwork = window.stepnetwork || {}; window.stepnetwork.adUnitId = '\(self.adUnitId)';
         console.log('Injected adUnitId to JS, value: ' + window.stepnetwork.adUnitId);
@@ -628,6 +692,15 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         webView.configuration.userContentController.addUserScript(adUnitIdScript)
         debugPrint("[SN] [NATIVE] Injected adUnitId to JS (window.stepnetwork.adUnitId): \(self.adUnitId)")
 
+        // 4. Custom targeting (always, if present)
+        let customTargetingJS = generateCustomTargetingJS()
+        if !customTargetingJS.isEmpty {
+            let customTargetingScript = WKUserScript(source: customTargetingJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            webView.configuration.userContentController.addUserScript(customTargetingScript)
+            debugPrint("[SN] [NATIVE] Injected custom targeting with \(customTargetingParams.count) parameters")
+        }
+
+        // 5. URL loading (always)
         // Generate random value from UUID
         let randomValue = UUID().uuidString
         var urlString = baseURL

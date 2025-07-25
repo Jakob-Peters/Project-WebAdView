@@ -21,6 +21,7 @@ class LazyLoadingManager: ObservableObject {
     var fetchThreshold: CGFloat = 800
     var displayThreshold: CGFloat = 200
     var unloadThreshold: CGFloat = 1600 // Increased for hysteresis to prevent flickering
+    var unloadingEnabled: Bool = false // NEW: Controls whether ads should be unloaded when out of view
 
     // Throttling mechanism instead of debouncing
     private var throttleTimer: AnyCancellable?
@@ -101,8 +102,8 @@ class LazyLoadingManager: ObservableObject {
                 newState = .displayed
                 // Clear any unload candidate status when displaying
                 unloadCandidates.removeValue(forKey: adId)
-            } else if (currentLoadState == .fetched || currentLoadState == .displayed) && !adFrame.intersects(unloadZone) {
-                // Option B: Stability Timer - Check if ad should be marked for unloading
+            } else if (currentLoadState == .fetched || currentLoadState == .displayed) && !adFrame.intersects(unloadZone) && unloadingEnabled {
+                // Option B: Stability Timer - Check if ad should be marked for unloading (only if unloading is enabled)
                 if unloadCandidates[adId] == nil {
                     // First time this ad is out of unload zone, mark as candidate
                     unloadCandidates[adId] = now
