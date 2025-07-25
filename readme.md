@@ -187,12 +187,14 @@ WebAdView(adUnitId: "div-gpt-ad-mobile_3")
 
 **Important:** The `initialWidth`, `initialHeight`, `minWidth`, `maxWidth`, `minHeight`, and `maxHeight` parameters are for UI layout purposes only. They do not control the actual ad size delivered by STEP Network's ad server. The WebAdView will automatically resize to match the ad content delivered by Yield Manager.
 
+**⚠️ Size Override Warning:** If you apply `.frame()` modifiers or set strict sizing constraints (minWidth, maxWidth, etc.), these will override the automatic resizing logic and lock the WebAdView to your specified dimensions. This can cause ad rendering complications if the delivered ad doesn't match your constraints. Always coordinate with STEP Network to ensure Yield Manager configuration matches your app's size constraints before applying restrictive sizing.
+
 ```swift
 // Set initial container size (for layout stability while ad loads)
 // Actual ad size is determined by STEP Network configuration
 WebAdView(adUnitId: "div-gpt-ad-mobile_2", initialWidth: 300, initialHeight: 250)
     .showAdLabel(true, text: "Annonce", font: .caption.bold())
-    .frame(maxWidth: .infinity, alignment: .center)
+    .frame(maxWidth: .infinity, alignment: .center) // Safe: allows width flexibility
 ```
 
 #### Container Constraints (UI Layout Only)
@@ -209,10 +211,40 @@ WebAdView(
     maxHeight: 600        // Maximum container height (UI constraint only)
 )
     .showAdLabel(true)
-    .frame(maxWidth: .infinity, alignment: .center)
+    .frame(maxWidth: .infinity, alignment: .center) // Safe: allows flexibility
 ```
 
-**Note:** If the ad delivered by STEP Network is larger than your container constraints, the WebAdView will prioritize displaying the full ad content and may override local constraints.
+**⚠️ Critical Warning:** If the ad delivered by STEP Network is larger than your container constraints, or if you apply restrictive `.frame()` modifiers, the WebAdView will be locked to your specified dimensions instead of automatically resizing. This can cause:
+- **Ad cropping or distortion** if the delivered ad doesn't fit your constraints
+- **Layout issues** where ads appear cut off or improperly scaled
+- **Revenue impact** if ads cannot display properly
+
+**Best Practice:** Coordinate with STEP Network to ensure Yield Manager is configured to deliver ads that match your size constraints, or use flexible constraints (like `maxWidth: .infinity`) that allow automatic resizing.
+
+#### Frame Constraints and Size Override
+
+**⚠️ Developer Override Capability:** While WebAdView automatically resizes to match delivered ad content, developers can force specific dimensions using SwiftUI's `.frame()` modifier or restrictive sizing parameters. This will override the automatic resizing logic:
+
+```swift
+// CAUTION: These approaches lock the WebAdView to specific dimensions
+WebAdView(adUnitId: "div-gpt-ad-banner")
+    .frame(width: 320, height: 50)  // Fixed size - overrides automatic resizing
+
+WebAdView(adUnitId: "div-gpt-ad-banner", maxWidth: 300, maxHeight: 250)
+    .frame(maxWidth: 300, maxHeight: 250)  // Restrictive constraints
+
+// SAFER APPROACHES: Allow flexibility for automatic resizing
+WebAdView(adUnitId: "div-gpt-ad-banner")
+    .frame(maxWidth: .infinity)  // Flexible width, automatic height
+
+WebAdView(adUnitId: "div-gpt-ad-banner", initialHeight: 200)
+    .frame(maxWidth: .infinity, alignment: .center)  // Flexible with alignment
+```
+
+**Coordination Required:** If you need to lock WebAdView dimensions, coordinate with STEP Network to ensure:
+- Yield Manager is configured to deliver ads matching your exact dimensions
+- Fallback ad sizes are configured for your constraints
+- Ad creative formats are compatible with your fixed dimensions
 
 #### Custom Ad Label
 
@@ -289,12 +321,12 @@ struct ContentView: View {
 | adLabelFont       | Font      | .system(14, .bold) | Font for the ad label           |
 | initialWidth      | CGFloat   | 320       | Initial container width (UI layout only)    |
 | initialHeight     | CGFloat   | 320       | Initial container height (UI layout only)   |
-| minWidth          | CGFloat?  | nil       | Minimum container width (UI constraint only)|
-| maxWidth          | CGFloat?  | nil       | Maximum container width (UI constraint only)|
-| minHeight         | CGFloat?  | nil       | Minimum container height (UI constraint only)|
-| maxHeight         | CGFloat?  | nil       | Maximum container height (UI constraint only)|
+| minWidth          | CGFloat?  | nil       | Minimum container width (can override auto-resize) |
+| maxWidth          | CGFloat?  | nil       | Maximum container width (can override auto-resize) |
+| minHeight         | CGFloat?  | nil       | Minimum container height (can override auto-resize) |
+| maxHeight         | CGFloat?  | nil       | Maximum container height (can override auto-resize) |
 
-**Note:** All size parameters are for UI layout purposes only. Actual ad dimensions are controlled remotely by STEP Network's Yield Manager.
+**Note:** Size parameters are primarily for UI layout, but restrictive values combined with `.frame()` modifiers can override automatic resizing. Coordinate with STEP Network when using size constraints that may conflict with delivered ad dimensions.
 
 ### Custom Targeting Methods
 
