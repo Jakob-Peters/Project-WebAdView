@@ -1,7 +1,7 @@
 
-# Project AdView
+# Project WebAdView
 ## Overview
-Project AdView is a SwiftUI-based demo app that showcases how to display ad content in a privacy-compliant way using the Didomi consent management SDK. Ad units are rendered in `WKWebView` components and will only load after the user has given consent, ensuring that no consent notices appear inside the ad views themselves.
+Project WebAdView is a SwiftUI-based demo app that showcases how to display ad content in a privacy-compliant way using the Didomi consent management SDK. Ad units are rendered in `WKWebView` components and will only load after the user has given consent, ensuring that no consent notices appear inside the ad views themselves.
 
 ## Still in Development
 - **Accurate Viewability Measurement in WebAdView:**  
