@@ -399,6 +399,14 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
                     }
                 }
             }
+        
+        // Check if the ad is already in displayed state and trigger immediately
+        if let currentState = manager.adStates[adUnitId], currentState == .displayed && hasLoadedContent {
+            debugPrint("[SN] [LLM] WebAdViewController[\(ObjectIdentifier(self).hashValue)]: Ad already in displayed state, triggering immediately")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.triggerAdRendering()
+            }
+        }
     }
 
     //MARK: Consent holdback
@@ -515,11 +523,19 @@ class WebAdViewController: UIViewController, WKUIDelegate, WKNavigationDelegate,
         }
         
         let triggerAdJS = """
-        if (window.ayManager && typeof ayManager.dispatchManualEvent === 'function') {
-            ayManager.dispatchManualEvent();
-            console.log('[LLM] Triggered manual ad render event for unit: \(adUnitId)');
+        if (typeof window.triggerManualAdEvent === 'function') {
+            window.triggerManualAdEvent();
         } else {
-            console.log('[LLM] ayManager.dispatchManualEvent not available for unit: \(adUnitId)');
+            // Fallback to direct call if the function isn't ready yet
+            window.ayManagerEnv = window.ayManagerEnv || { cmd: [] };
+            window.ayManagerEnv.cmd.push(function() {
+                if (window.ayManagerEnv && typeof ayManagerEnv.dispatchManualEvent === 'function') {
+                    ayManagerEnv.dispatchManualEvent();
+                    console.log('[LLM] Triggered manual ad render event (fallback) for unit: \(adUnitId)');
+                } else {
+                    console.log('[LLM] ayManagerEnv.dispatchManualEvent not available (fallback) for unit: \(adUnitId)');
+                }
+            });
         }
         """
         

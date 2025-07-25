@@ -33,9 +33,16 @@ class LazyLoadingManager: ObservableObject {
     private let unloadStabilityDelay: TimeInterval = 2.0 // 2 seconds delay before unloading
 
     func updateAdFrame(_ adId: String, frame: CGRect) {
+        let wasNew = adUnitFrames[adId] == nil
         if adUnitFrames[adId] != frame { // Only update if frame actually changed
             adUnitFrames[adId] = frame
             triggerVisibilityCheck()
+            
+            // If this is a new ad frame and scrollViewBounds is already set, do an immediate check
+            if wasNew && !scrollViewBounds.isEmpty {
+                debugPrint("[SN] [LLM] New ad frame registered for \(adId), performing immediate visibility check")
+                checkAdVisibility()
+            }
         }
     }
 
@@ -98,7 +105,7 @@ class LazyLoadingManager: ObservableObject {
                 newState = .fetched
                 // Clear any unload candidate status when fetching
                 unloadCandidates.removeValue(forKey: adId)
-            } else if currentLoadState == .fetched && adFrame.intersects(displayZone) && adFrame.intersects(scrollViewBounds) {
+            } else if currentLoadState == .fetched && adFrame.intersects(displayZone) {
                 newState = .displayed
                 // Clear any unload candidate status when displaying
                 unloadCandidates.removeValue(forKey: adId)

@@ -133,6 +133,20 @@
           window.ayManagerEnv.cmd.push(function () {
             ayManagerEnv.display(adUnitId);
           });
+
+          // 3. Set up manual trigger function in cmd queue
+          window.ayManagerEnv.cmd.push(function () {
+            // Create a global function to trigger manual events for this ad unit
+            window.triggerManualAdEvent = function() {
+              if (window.ayManagerEnv && typeof ayManagerEnv.dispatchManualEvent === 'function') {
+                ayManagerEnv.dispatchManualEvent();
+                console.log('[LLM] Triggered manual ad render event for unit: ' + adUnitId);
+              } else {
+                console.log('[LLM] ayManagerEnv.dispatchManualEvent not available for unit: ' + adUnitId);
+              }
+            };
+            console.log('[LLM] Manual trigger function ready for unit: ' + adUnitId);
+          });
         });
         </script>
     </div>
