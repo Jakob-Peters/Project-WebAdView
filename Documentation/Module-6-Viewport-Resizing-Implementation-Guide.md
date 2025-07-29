@@ -175,50 +175,7 @@ func updateViewportParams(size: CGSize, offset: CGPoint) {
 }
 ```
 
-#### Removed Old Code
-- ❌ Removed old `updateViewportSize(_ size: CGSize)` method
-- ❌ Cleaned up overlay-based viewability JavaScript from debug panel
-- ❌ Removed DOM manipulation code
-
 ### updated-ad-template.html
-
-#### Enhanced Ad Size Detection
-```javascript
-function observeAdSize(adDiv) {
-    function notifyIfChanged() {
-        let width, height;
-        
-        // Try multiple approaches for accurate sizing:
-        const iframeAd = adDiv.querySelector('iframe');
-        const imgAd = adDiv.querySelector('img');
-        
-        if (iframeAd && iframeAd.width && iframeAd.height) {
-            // Use iframe dimensions if available
-            width = parseInt(iframeAd.width);
-            height = parseInt(iframeAd.height);
-        } else if (imgAd && imgAd.naturalWidth && imgAd.naturalHeight) {
-            // Use image natural dimensions
-            width = imgAd.naturalWidth;
-            height = imgAd.naturalHeight;
-        } else {
-            // Fallback: getBoundingClientRect minus padding/margins
-            const rect = adDiv.getBoundingClientRect();
-            const computedStyle = window.getComputedStyle(adDiv);
-            const paddingX = parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
-            const paddingY = parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
-            const marginX = parseFloat(computedStyle.marginLeft) + parseFloat(computedStyle.marginRight);
-            const marginY = parseFloat(computedStyle.marginTop) + parseFloat(computedStyle.marginBottom);
-            
-            width = Math.round(rect.width - paddingX - marginX);
-            height = Math.round(rect.height - paddingY - marginY);
-        }
-        
-        console.log('[LLM] Ad size measured: ' + width + 'x' + height);
-        sendAdSizeToNative(width, height);
-    }
-}
-```
-
 #### CSS Layout Improvements
 ```css
 html, body {
@@ -236,12 +193,6 @@ html, body {
     overflow: visible; /* Allow ad to overflow container */
 }
 ```
-
-#### Removed Old Code
-- ❌ Removed all overlay-based viewability management JavaScript
-- ❌ Removed `updateOverlayPositions()` function
-- ❌ Removed overlay DOM elements creation
-- ❌ Removed viewport-dependent CSS sizing
 
 ## Data Flow
 
@@ -274,122 +225,3 @@ html, body {
 4. LazyLoadingManager.updateAdContentSize() → adContentSizes updated
 5. Viewport recalculation triggered for displayed ads
 ```
-
-## Known Issues & Solutions
-
-### Issue 1: HTML Template Viewport Scaling
-**Problem**: When WKWebView viewport resizes, HTML content scales instead of being clipped.
-
-**Current Status**: Partially resolved with CSS fixes, but still experiencing issues during scrolling.
-
-**Potential Solutions**:
-1. **Fixed HTML Viewport**: Set HTML meta viewport to fixed dimensions
-2. **Container Overflow Strategy**: Create larger HTML container with overflow clipping
-3. **JavaScript Viewport Control**: Dynamically adjust HTML viewport via JavaScript
-
-### Issue 2: WebView Positioning Direction
-**Problem**: WebView resizes from bottom-up instead of showing correct content portion.
-
-**Current Status**: Addressed with offset-based positioning, but may need refinement.
-
-**Solution Applied**: 
-```swift
-// Position WebView with negative offset to show correct content area
-let newFrame = CGRect(origin: CGPoint(x: -offset.x, y: -offset.y), size: view.bounds.size)
-webView.frame = newFrame
-view.bounds = CGRect(origin: .zero, size: size)
-```
-
-### Issue 3: SwiftUI Layout Stability
-**Problem**: WebAdView size changes cause parent view shifting.
-
-**Solution Applied**: 
-```swift
-.fixedSize()  // Prevent parent layout influence
-.clipped()    // Maintain visual boundaries
-```
-
-### Issue 4: Ad Size Measurement Accuracy
-**Problem**: Ad sizes reported incorrectly due to padding/margins inclusion.
-
-**Solution Applied**: Enhanced size detection with multiple fallback methods and CSS computation.
-
-## Future Improvements
-
-### 1. HTML Template Refactoring
-```html
-<!-- Suggested approach for stable viewport -->
-<meta name="viewport" content="width=1200, height=1200, initial-scale=1.0, user-scalable=no">
-
-<style>
-html, body {
-    width: 1200px;
-    height: 1200px;
-    overflow: visible;
-}
-.ad-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-</style>
-```
-
-### 2. Enhanced Viewport Calculation
-- Add viewport size validation and constraints
-- Implement minimum/maximum viewport size limits
-- Add debugging visualization for viewport boundaries
-
-### 3. Performance Optimizations
-- Implement viewport update debouncing for rapid scroll events
-- Add viewport change animation/transitions
-- Optimize memory usage for multiple ad instances
-
-### 4. Error Handling & Diagnostics
-- Add comprehensive logging for viewport calculations
-- Implement fallback strategies for edge cases
-- Add diagnostic tools for troubleshooting viewability issues
-
-### 5. Testing & Validation
-- Create automated tests for viewport calculation logic
-- Add visual debugging tools for development
-- Implement A/B testing framework for different approaches
-
-## Implementation Checklist
-
-### Phase 1: Core Infrastructure ✅
-- [x] LazyLoadingManager viewport tracking
-- [x] WebAdView reactive subscriptions  
-- [x] WebAdViewController viewport management
-- [x] Basic HTML template cleanup
-
-### Phase 2: Viewport Calculation ✅
-- [x] Size and offset calculation algorithm
-- [x] Ad content size tracking
-- [x] Reactive update publishers
-- [x] WebView positioning logic
-
-### Phase 3: Refinements 🔄
-- [x] Enhanced ad size detection
-- [x] SwiftUI layout stability
-- [x] Removed old overlay code
-- [ ] HTML template viewport stability (In Progress)
-
-### Phase 4: Polish & Testing 📋
-- [ ] Comprehensive error handling
-- [ ] Performance optimization
-- [ ] Visual debugging tools
-- [ ] Automated testing suite
-
-## Conclusion
-
-The viewport resizing approach provides a robust foundation for accurate viewability measurement by controlling what ad networks detect through native WKWebView viewport management. While some HTML template refinements are still needed, the core architecture successfully prevents false viewability reporting and provides precise control over the 50% visibility threshold.
-
-The reactive, publisher-based architecture ensures real-time updates and maintainable code, while the centralized LazyLoadingManager provides consistent behavior across all ad units in a scroll view.
-
----
-
-**Last Updated**: July 29, 2025  
-**Implementation Status**: Core Complete, Refinements In Progress  
-**Next Priority**: HTML template viewport stability during scrolling
