@@ -19,8 +19,15 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
 - **External URL Handling:** Ad clicks to external domains or popup windows open in the system browser, keeping the ad content in the webview and preventing unwanted navigation.
 - **Global Debug Toggle:** A persistent debug toggle (ladybug icon in the toolbar) enables or disables all debug logging at runtime, with state saved across launches.
 - **Conditional Debug Logging:** All debug output (print statements) is routed through a `debugPrint()` helper and only appears when debugging is enabled.
+- **Anti-Flickering System:** Hysteresis thresholds and stability timers prevent rapid state changes and layout thrashing during scroll.
+- **Throttled Updates:** Visibility checks limited to 15fps (67ms intervals) for smooth scrolling performance.
 
 ## Main Components
+
+### 1. Didomi SDK Integration
+- The Didomi SDK is initialized in `AppDelegate` (`Project_AdViewApp.swift`).
+- A global event listener posts a `DidomiConsentChanged` notification when consent changes.
+- The SDK UI is set up using a custom `DidomiWrapper` to ensure proper consent collection.
 
 ### 1. Didomi SDK Integration
 - The Didomi SDK is initialized in `AppDelegate` (`Project_AdViewApp.swift`).
@@ -31,9 +38,9 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
 - `WebAdView` is a SwiftUI component that displays an ad in a `WKWebView`.
 - It only loads ad content after consent is given, listening for consent events via NotificationCenter.
 - **Advanced Lazy Loading Manager:** A sophisticated system that manages ad lifecycle based on scroll position:
-  - **Fetch State:** Ads are fetched when they approach the viewport (configurable threshold)
-  - **Display State:** Ads are displayed when visible in the viewport
-  - **Unload State:** Ads are unloaded when they move far from the viewport to free memory
+  - **Fetch State:** Ads are fetched when they approach the viewport (configurable threshold, default: 800pt)
+  - **Display State:** Ads are displayed when visible in the viewport (configurable threshold, default: 200pt)
+  - **Unload State:** Ads are unloaded when they move far from the viewport to free memory (configurable threshold, default: 1600pt)
   - **State Transitions:** Automatic state management with debug logging for each transition
 - **Custom Targeting Support:** Built-in Google Ad Manager targeting system for passing additional targeting parameters to STEP Network's ad serving configuration:
   - Single string values: `.customTargeting("key", "value")`
@@ -44,8 +51,12 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
   - **Important:** Custom targeting parameters can be added as needed, but require configuration by STEP Network within Google Ad Manager before they become usable for campaign targeting.
 - **Performance Optimization:** Only visible or near-visible ads consume resources, dramatically improving memory usage and scroll performance in long content.
 - **Configurable Thresholds:** Customize fetch, display, and unload distances based on your needs.
+- **Anti-Flickering System:** 
+  - **Hysteresis Thresholds:** Different distances for loading vs unloading prevent rapid state changes
+  - **Stability Timer:** 2-second delay before unloading ads that go out of view prevents layout thrashing
+  - **Throttled Updates:** Visibility checks limited to 15fps (67ms intervals) for smooth scrolling performance
 - Consent status is injected into the web view using Didomi's JavaScript API.
-- WKWebView is configured with `allowsInlineMediaPlaybook = true` and `mediaTypesRequiringUserActionForPlayback = []` for optimal video ad support.
+- WKWebView is configured with `allowsInlineMediaPlayback = true` and `mediaTypesRequiringUserActionForPlayback = []` for optimal video ad support.
 - Clicks on external links, popup windows (`target="_blank"`), or non-http(s) schemes are detected and opened in the system browser, while the webview remains on the original ad content.
 - All debug output in this component is routed through `debugPrint()` and is controlled by the global debug toggle.
 - **Ad Sizing & STEP Network Integration:** The ad container's frame is initially set to a default size, then automatically resizes based on the actual ad content delivered by Yield Manager (STEP Network's wrapper). Ad dimensions, sizes, and available formats are configured remotely by STEP Network. Local frame constraints (minWidth, maxWidth, etc.) are for UI layout purposes only and do not influence the actual ad sizes requested from the ad server. **Always consult with STEP Network regarding available ad sizes, targeting criteria, and ad unit specifications before implementation.**
@@ -55,8 +66,9 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
 - **Lazy Loading Integration:** ScrollViews automatically enable lazy loading for optimal performance with multiple ads.
 - The homepage is now fully scrollable: all content (ads, navigation links, consent button) is wrapped in a `ScrollView`, so you can always scroll to the bottom regardless of content height or number of ads.
 - Fixed heights and unnecessary spacers have been removed from the homepage, allowing content to flow naturally and preventing layout issues when adding more ads or content.
-- Navigation between articles is supported.
+- Navigation between articles is supported with full demo content.
 - The homepage features a toolbar with a ladybug icon for toggling debug mode.
+- **Rich Demo Content:** Includes multiple full-length articles with realistic content, proper article previews, and integrated ad placements throughout the content.
 
 ### 4. Debugging Infrastructure
 - **DebugSettings.swift:** Defines a global, persistent `isDebugEnabled` boolean using `@Published` and `UserDefaults`.
@@ -64,14 +76,20 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
 - **Persistent State:** The debug flag is saved in `UserDefaults` and restored on app launch.
 - **Conditional Logging:** All `print()` statements in the app are replaced with `debugPrint()`, which only outputs when debugging is enabled.
 - **Lazy Loading Debug Output:** When enabled, shows detailed state transitions for each ad (notLoaded → fetched → displayed → unloaded) with frame and scroll position information.
+- **Web Debug Panel:** When debug mode is enabled, each WebAdView includes a debug panel overlay showing:
+  - Current ad unit ID
+  - Ad size information (width × height)
+  - Google Publisher Console access button
+  - Real-time ad loading status
+- **Console Integration:** All JavaScript console output from the web views is bridged to the native debug console.
 
 ### 5. Lazy Loading System Architecture
 - **LazyLoadingManager:** Central coordinator that tracks ad states and scroll position, managing the lifecycle of all ads in a ScrollView.
 - **State Management:** Four distinct states (notLoaded, fetched, displayed, unloaded) with automatic transitions based on proximity to viewport.
 - **Configurable Thresholds:** 
-  - `fetchThreshold`: Distance from viewport when ad should start loading (default: 800pts)
-  - `displayThreshold`: Distance from viewport when ad should be displayed (default: 200pts)  
-  - `unloadThreshold`: Distance from viewport when ad should be unloaded (default: 1600pts)
+  - `fetchThreshold`: Distance from viewport when ad should start loading (default: 800pt)
+  - `displayThreshold`: Distance from viewport when ad should be displayed (default: 200pt)  
+  - `unloadThreshold`: Distance from viewport when ad should be unloaded (default: 1600pt)
 - **Toggleable Unloading:** 
   - `unloadingEnabled`: Controls whether ads should be unloaded when out of view (default: false)
   - Default behavior prioritizes user experience over memory optimization
@@ -82,6 +100,7 @@ Project WebAdView is a SwiftUI-based demo app that showcases how to display ad c
   - **Throttled Updates:** Visibility checks limited to 15fps (67ms intervals) for smooth scrolling performance
 - **Performance Benefits:** Memory usage scales with visible content rather than total content, enabling smooth scrolling with dozens of ads without flickering or layout jumping.
 - **Automatic Integration:** Simply apply `.lazyLoadAd()` modifier to any ScrollView to enable lazy loading for all contained WebAdViews.
+- **Environment Integration:** Uses SwiftUI's environment system to pass the LazyLoadingManager instance to all contained WebAdViews.
 
 
 ### How to Use WebAdView
@@ -322,7 +341,7 @@ struct ContentView: View {
 | adUnitId          | String    | (none)    | The ad unit ID provided by STEP Network     |
 | showAdLabel       | Bool      | false     | Show the "annonce" label above the ad       |
 | adLabelText       | String    | "annonce"| The text for the ad label                   |
-| adLabelFont       | Font      | .system(14, .bold) | Font for the ad label           |
+| adLabelFont       | Font      | .system(size: 10, weight: .bold) | Font for the ad label |
 | initialWidth      | CGFloat   | 320       | Initial container width (UI layout only)    |
 | initialHeight     | CGFloat   | 320       | Initial container height (UI layout only)   |
 | minWidth          | CGFloat?  | nil       | Minimum container width (can override auto-resize) |
@@ -354,25 +373,27 @@ struct ContentView: View {
 In SwiftUI, changing the `.id` of a view causes it to be fully recreated. The `homepageWebAdKey` state variable is used as the `.id` for the homepage's main `WebAdView`. By updating this key (e.g., with `homepageWebAdKey = UUID()` in `.onAppear`), you force SwiftUI to destroy and recreate the ad view. This is useful if you want to guarantee the ad view is fully reset and reloaded whenever the homepage appears, rather than just updating its content. Without this, the ad view may persist its state across navigation and not reload as expected.
 
 ## Project Structure
-- `Project_AdViewApp.swift`: App entry point, Didomi SDK setup, and global debug infrastructure.
-- `Views/HomepageView.swift`: Main navigation, ad placement, lazy loading integration, and debug toggle UI.
-- `Configs/WebAdView.swift`: Ad unit implementation, consent gating logic, lazy loading UI integration, and conditional debug logging.
-- `Configs/LazyLoadingManager.swift`: Central lazy loading coordinator managing ad states and performance optimization.
-- `Configs/DebugSettings.swift`: Global, persistent debug state management.
-- `Configs/DidomiWrapper.swift`: Ensures Didomi UI is properly presented in SwiftUI.
+- `Project AdView/Project_AdViewApp.swift`: App entry point, Didomi SDK setup, and global debug infrastructure.
+- `Project AdView/Views/HomepageView.swift`: Main navigation, ad placement, lazy loading integration, demo content, and debug toggle UI.
+- `Project AdView/Configs/WebAdView.swift`: Ad unit implementation, consent gating logic, lazy loading UI integration, and conditional debug logging.
+- `Project AdView/Configs/LazyLoadingManager.swift`: Central lazy loading coordinator managing ad states and performance optimization.
+- `Project AdView/Configs/DebugSettings.swift`: Global, persistent debug state management.
+- `Project AdView/Configs/DidomiWrapper.swift`: Ensures Didomi UI is properly presented in SwiftUI.
 
 ## Requirements
 - Xcode 12+
 - Swift 5.3+
 - Didomi iOS SDK
+- Valid Didomi API key (currently using demo key: "d0661bea-d696-4069-b308-11057215c4c4")
 
 ## Customization
-- **Change the ad template URL in `WebAdView.swift` as needed** (coordinate with STEP Network).
+- **Change the ad template URL in `WebAdView.swift` as needed** (currently: "https://adops.stepdev.dk/wp-content/ad-template.html?didomi-disable-notice=true" - coordinate with STEP Network).
 - **Add more ad units** by placing additional `WebAdView(adUnitId: ...)` components in your views using ad unit IDs provided by STEP Network.
 - **Configure lazy loading thresholds** using `.lazyLoadAd(fetchThreshold:displayThreshold:unloadThreshold:)` to optimize performance for your content.
 - **Use the `initialWidth`, `initialHeight`, `minWidth`, `maxWidth`, `minHeight`, and `maxHeight` parameters** to control the ad container's UI layout behavior. These do not affect the actual ad content size delivered by STEP Network.
 - **Custom targeting parameters** must be coordinated with STEP Network to ensure they match your account's configuration.
 - **Ad unit IDs and expected dimensions** should be obtained from STEP Network before implementation.
+- **Replace the Didomi API key** in `Project_AdViewApp.swift` with your own production key.
 - You can further customize the WKWebView configuration or external URL handling logic in `WebAdViewController` for your specific ad requirements.
 - Adjust or extend the debug logging as needed by using `debugPrint()` in your own code.
 
@@ -385,7 +406,9 @@ This project ensures that ad content is only loaded after explicit user consent,
 - If you do not see debug output, make sure the debug toggle (ladybug icon) is enabled.
 - **For performance issues with many ads:** Ensure `.lazyLoadAd()` is applied to your ScrollView.
 - **If ads aren't loading/unloading properly:** Check debug logs for state transitions and verify ScrollView bounds are being captured correctly.
-- **For flickering or layout jumping:** The system now includes anti-flickering mechanisms with hysteresis thresholds and stability timers. If you still experience issues, try increasing the `unloadThreshold` parameter or check debug logs for rapid state transitions. (If issues presist, disable unloading again, using the `default` value)
+- **For flickering or layout jumping:** The system now includes anti-flickering mechanisms with hysteresis thresholds and stability timers. If you still experience issues, try increasing the `unloadThreshold` parameter or check debug logs for rapid state transitions. (If issues persist, disable unloading again using the default value)
+- **For ad size conflicts:** If ads appear clipped or distorted, check that your frame constraints aren't overriding the automatic resizing. Use flexible constraints like `maxWidth: .infinity` when possible.
+- **For targeting issues:** Verify that all custom targeting parameters are configured in your STEP Network account before using them in the app.
 
 ## License
 This project is for demo purposes. Please adapt for production use and review privacy requirements for your region.
